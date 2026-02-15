@@ -1,0 +1,27 @@
+# Maven
+/target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Logs
+*.log
+
+# Mac
+.DS_Store
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Cursor 
+.cursor/
+
+# OS files
+Thumbs.db
+
+# Environment variables
+.env
