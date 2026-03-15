@@ -252,4 +252,30 @@ class RoomManagerTest {
         assertTrue(retrieved.isPresent());
         // Note: This test documents current behavior - last created room wins
     }
+
+    @Test
+    void testCleanup_OnShutdown() {
+        // Given - create some rooms
+        Room room1 = roomManager.createRoom("CLEANUP1", 3, 6);
+        Room room2 = roomManager.createRoom("CLEANUP2", 4, 8);
+        Room room3 = roomManager.createRoom("CLEANUP3", 5, 10);
+
+        // Verify rooms exist
+        assertEquals(3, roomManager.getAllRooms().size());
+        assertTrue(roomManager.getRoom(room1.getId()).isPresent());
+        assertTrue(roomManager.getRoom(room2.getId()).isPresent());
+        assertTrue(roomManager.getRoom(room3.getId()).isPresent());
+
+        // When - simulate application shutdown cleanup
+        roomManager.cleanup();
+
+        // Then - all rooms should be cleared
+        assertEquals(0, roomManager.getAllRooms().size());
+        assertFalse(roomManager.getRoom(room1.getId()).isPresent());
+        assertFalse(roomManager.getRoom(room2.getId()).isPresent());
+        assertFalse(roomManager.getRoom(room3.getId()).isPresent());
+        assertFalse(roomManager.getRoomByJoinCode("CLEANUP1").isPresent());
+        assertFalse(roomManager.getRoomByJoinCode("CLEANUP2").isPresent());
+        assertFalse(roomManager.getRoomByJoinCode("CLEANUP3").isPresent());
+    }
 }

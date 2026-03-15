@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
 /**
@@ -95,5 +96,17 @@ public class RoomManager {
      */
     private static String generateJoinCode() {
         return UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+    }
+
+    /**
+     * Cleans up all rooms when the application shuts down.
+     * This ensures no stale room data remains in memory.
+     */
+    @PreDestroy
+    public void cleanup() {
+        int roomCount = roomsById.size();
+        roomsById.clear();
+        roomsByJoinCode.clear();
+        System.out.println("RoomManager cleanup: Cleared " + roomCount + " rooms during application shutdown.");
     }
 }

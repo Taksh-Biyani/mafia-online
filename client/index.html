@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mafia Online Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Mafia Online</h1>
+
+        <div id="main-menu" class="menu-section">
+            <h2>Welcome to Mafia Online</h2>
+            <button id="create-room-btn" class="btn btn-primary">Create New Room</button>
+            <button id="join-room-btn" class="btn btn-secondary">Join Room</button>
+            <button id="list-rooms-btn" class="btn btn-info">List Available Rooms</button>
+        </div>
+
+        <div id="create-room-section" class="menu-section hidden">
+            <h2>Create New Room</h2>
+            <div class="form-group">
+                <label for="creator-name">Your Name:</label>
+                <input type="text" id="creator-name" placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+                <label for="join-code">Join Code (optional):</label>
+                <input type="text" id="join-code" placeholder="Leave empty for auto-generated">
+            </div>
+            <div class="form-group">
+                <label for="min-players">Min Players:</label>
+                <input type="number" id="min-players" value="3" min="3" max="10">
+            </div>
+            <div class="form-group">
+                <label for="max-players">Max Players:</label>
+                <input type="number" id="max-players" value="6" min="3" max="10">
+            </div>
+            <button id="submit-create-room" class="btn btn-success">Create Room</button>
+            <button id="back-from-create" class="btn btn-secondary">Back</button>
+        </div>
+
+        <div id="join-room-section" class="menu-section hidden">
+            <h2>Join Room</h2>
+            <div class="form-group">
+                <label for="room-code">Room Code:</label>
+                <input type="text" id="room-code" placeholder="Enter room code">
+            </div>
+            <div class="form-group">
+                <label for="player-name">Your Name:</label>
+                <input type="text" id="player-name" placeholder="Enter your name">
+            </div>
+            <button id="submit-join-room" class="btn btn-success">Join Room</button>
+            <button id="back-from-join" class="btn btn-secondary">Back</button>
+        </div>
+
+        <div id="room-list-section" class="menu-section hidden">
+            <h2>Available Rooms</h2>
+            <div id="rooms-list" class="rooms-list">
+                <!-- Rooms will be displayed here -->
+            </div>
+            <button id="refresh-rooms" class="btn btn-info">Refresh</button>
+            <button id="back-from-list" class="btn btn-secondary">Back</button>
+        </div>
+
+        <div id="game-room-section" class="menu-section hidden">
+            <h2>Game Room</h2>
+            <div id="room-info">
+                <p><strong>Room Code:</strong> <span id="current-room-code"></span></p>
+                <p><strong>Players:</strong> <span id="player-count">0</span>/<span id="max-players-display">0</span></p>
+                <p><strong>Phase:</strong> <span id="game-phase">LOBBY</span></p>
+            </div>
+            <div id="players-list" class="players-list">
+                <!-- Players will be displayed here -->
+            </div>
+            <div id="game-actions">
+                <button id="start-game-btn" class="btn btn-success hidden">Start Game</button>
+                <button id="leave-room-btn" class="btn btn-danger">Leave Room</button>
+            </div>
+        </div>
+
+        <div id="messages" class="messages">
+            <!-- Status messages will appear here -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
