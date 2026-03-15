@@ -59,7 +59,10 @@ public class RoomManager {
      * @return Optional containing the room if found, empty otherwise
      */
     public Optional<Room> getRoomByJoinCode(String joinCode) {
-        return Optional.ofNullable(roomsByJoinCode.get(joinCode != null ? joinCode.toUpperCase() : null));
+        if (joinCode == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(roomsByJoinCode.get(joinCode.toUpperCase()));
     }
 
     /**
