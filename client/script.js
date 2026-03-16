@@ -17,8 +17,59 @@ class MafiaGameClient {
         this.transitioning = false;
         this.clockAngle = 0;
 
+        this.currentScene = 'scene-menu';
+
         this.initializeEventListeners();
         this.showMessage('Welcome to Mafia Online!', 'info');
+    }
+
+    // --- Scene Management ---
+
+    setScene(sceneId) {
+        if (sceneId === this.currentScene) return;
+
+        const oldEl = document.getElementById(this.currentScene);
+        const newEl = document.getElementById(sceneId);
+        if (!newEl) return;
+
+        if (oldEl) {
+            oldEl.classList.remove('scene-active');
+            oldEl.classList.add('scene-exit');
+            setTimeout(() => oldEl.classList.remove('scene-exit'), 600);
+        }
+
+        // Small delay so exit starts first
+        setTimeout(() => {
+            newEl.classList.add('scene-active');
+        }, 150);
+
+        this.currentScene = sceneId;
+    }
+
+    getSceneForState(room) {
+        if (!room) return 'scene-menu';
+
+        const phase = room.phase;
+        const aliveCount = room.players ? room.players.filter(p => p.alive).length : 0;
+
+        if (phase === 'LOBBY') return 'scene-lobby';
+
+        if (phase === 'NIGHT') {
+            if (this.myRole === 'DETECTIVE') return 'scene-magnifier';
+            if (this.myRole === 'DOCTOR') return 'scene-medic';
+            return 'scene-knife';
+        }
+
+        if (phase === 'DAY' || phase === 'VOTING') {
+            if (aliveCount >= 6) return 'scene-group-6';
+            if (aliveCount === 5) return 'scene-group-5';
+            if (aliveCount === 4) return 'scene-group-4';
+            return 'scene-group-3';
+        }
+
+        if (phase === 'ENDED') return 'scene-lobby'; // dead body for game over
+
+        return 'scene-menu';
     }
 
     initializeEventListeners() {
@@ -60,13 +111,6 @@ class MafiaGameClient {
         }
 
         const reveal = () => {
-            // Swap background pattern: weapons ↔ magnifying glass + first aid kit
-            if (sectionId === 'game-room-section') {
-                document.body.classList.add('in-game');
-            } else {
-                document.body.classList.remove('in-game');
-            }
-
             target.classList.remove('hidden');
             void target.offsetWidth;
             target.classList.add('section-enter');
@@ -91,22 +135,27 @@ class MafiaGameClient {
     }
 
     showMainMenu() {
+        this.setScene('scene-menu');
         this.navigateTo('main-menu');
     }
 
     showCreateRoom() {
+        this.setScene('scene-menu');
         this.navigateTo('create-room-section');
     }
 
     showJoinRoom() {
+        this.setScene('scene-menu');
         this.navigateTo('join-room-section');
     }
 
     showRoomList() {
+        this.setScene('scene-menu');
         this.navigateTo('room-list-section', () => this.listRooms());
     }
 
     showGameRoom() {
+        this.setScene('scene-lobby');
         this.navigateTo('game-room-section', () => {
             this.updateRoomDisplay();
             this.startRoomPolling();
@@ -257,7 +306,7 @@ class MafiaGameClient {
 
         // Force-clear any in-progress transition
         this.transitioning = false;
-        document.body.classList.remove('in-game');
+        this.setScene('scene-menu');
         document.querySelectorAll('.menu-section').forEach(s => {
             s.classList.remove('section-enter', 'section-exit');
             s.classList.add('hidden');
@@ -309,6 +358,7 @@ class MafiaGameClient {
 
             this.displayPlayers(room.players);
             this.renderPhaseUI(room);
+            this.setScene(this.getSceneForState(room));
 
             // Fetch own role once when game moves out of lobby
             if (room.phase !== 'LOBBY' && !this.roleDisplayed) {
