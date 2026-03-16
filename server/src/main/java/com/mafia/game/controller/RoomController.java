@@ -45,22 +45,29 @@ public class RoomController {
      * @return ResponseEntity containing the CreateRoomResponse with 201 status
      */
     @PostMapping
-    public ResponseEntity<CreateRoomResponse> createRoom(@RequestBody CreateRoomRequest request) {
-        Room room = roomService.createRoom(
-                request.getJoinCode(),
-                request.getMinPlayers(),
-                request.getMaxPlayers(),
-                request.getDayDurationSeconds());
-        
+    public ResponseEntity<?> createRoom(@RequestBody CreateRoomRequest request) {
+        Room room;
+        try {
+            room = roomService.createRoom(
+                    request.getJoinCode(),
+                    request.getMinPlayers(),
+                    request.getMaxPlayers(),
+                    request.getDayDurationSeconds());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
         // Auto-join the creator to the room
-        Player creator = roomService.joinRoom(room.getId(), request.getPlayerName())
-                .orElseThrow(() -> new RuntimeException("Failed to join creator to room"));
-
-        // Mark the creator as host
-        room.setHostId(creator.getId());
-
-        CreateRoomResponse response = new CreateRoomResponse(room, creator);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return roomService.joinRoom(room.getId(), request.getPlayerName())
+                .map(creator -> {
+                    room.setHostId(creator.getId());
+                    return ResponseEntity.status(HttpStatus.CREATED)
+                            .body((Object) new CreateRoomResponse(room, creator));
+                })
+                .orElseGet(() -> {
+                    roomService.removeRoom(room.getId());
+                    return ResponseEntity.badRequest().body("Username must be between 3 and 12 characters");
+                });
     }
 
     /**

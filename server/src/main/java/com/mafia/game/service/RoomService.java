@@ -79,13 +79,17 @@ public class RoomService {
      * @return Optional containing the created Player if successful, empty if room is full or not in LOBBY
      */
     public Optional<Player> joinRoom(UUID roomId, String playerName) {
+        String name = (playerName != null && !playerName.isBlank()) ? playerName.trim() : "";
+        if (name.length() < 3 || name.length() > 12) {
+            return Optional.empty();
+        }
         return roomManager.getRoom(roomId)
                 .filter(r -> r.getPhase() == GamePhase.LOBBY)
                 .filter(r -> r.getPlayers().size() < r.getMaxPlayers())
                 .map(room -> {
                     Player player = Player.builder()
                             .id(UUID.randomUUID())
-                            .name(playerName != null && !playerName.isBlank() ? playerName : "Player")
+                            .name(name)
                             .role(Player.Role.CITIZEN)
                             .alive(true)
                             .roomId(roomId)
@@ -118,7 +122,13 @@ public class RoomService {
      */
     public boolean leaveRoom(UUID roomId, UUID playerId) {
         return roomManager.getRoom(roomId)
-                .map(room -> room.getPlayers().removeIf(p -> p.getId().equals(playerId)))
+                .map(room -> {
+                    boolean removed = room.getPlayers().removeIf(p -> p.getId().equals(playerId));
+                    if (removed && room.getPlayers().isEmpty()) {
+                        roomManager.removeRoom(roomId);
+                    }
+                    return removed;
+                })
                 .orElse(false);
     }
 

@@ -4,12 +4,13 @@ import com.mafia.game.model.GamePhase;
 import com.mafia.game.model.Player;
 import com.mafia.game.room.Room;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import com.mafia.game.model.GamePhase;
 import org.springframework.stereotype.Service;
 
 /**
@@ -49,31 +50,73 @@ public class GameService {
     }
 
     /**
-     * Processes a night action by the mafia (eliminates a target).
-     * Only allows mafia members who are alive to perform actions during NIGHT phase.
-     * Transitions the room to DAY phase after action is submitted.
+     * Records the mafia's kill target for the current night.
+     * Does not immediately kill — resolution happens when all night actors have submitted (or night/end is called).
      *
      * @param roomId the UUID of the room
-     * @param playerId the UUID of the player performing the action
+     * @param playerId the UUID of the mafia player performing the action
      * @param targetPlayerId the UUID of the target player to eliminate
      * @return Optional containing the updated room if successful, empty if conditions not met
      */
     public Optional<Room> submitNightAction(UUID roomId, UUID playerId, UUID targetPlayerId) {
         return roomService.getRoom(roomId)
                 .filter(r -> r.getPhase() == GamePhase.NIGHT)
-                .flatMap(room -> findPlayer(room, playerId))
-                .filter(p -> p.getRole() == Player.Role.MAFIA && p.isAlive())
-                .flatMap(mafia -> roomService.getRoom(roomId))
-                .map(room -> {
-                    findPlayer(room, targetPlayerId).ifPresent(target -> target.setAlive(false));
-                    room.setPhase(GamePhase.DAY);
-                    return room;
-                });
+                .flatMap(room -> findPlayer(room, playerId)
+                        .filter(p -> p.getRole() == Player.Role.MAFIA && p.isAlive())
+                        .map(mafia -> {
+                            room.setMafiaTargetId(targetPlayerId);
+                            room.getNightActors().add("MAFIA");
+                            checkAutoEndNight(room);
+                            return room;
+                        }));
     }
 
     /**
-     * Manually ends the night phase and transitions to day phase.
-     * Only works if the room is currently in NIGHT phase.
+     * Records the doctor's protection target for the current night.
+     * If the mafia's target matches the protected player, the kill is blocked.
+     *
+     * @param roomId the UUID of the room
+     * @param playerId the UUID of the doctor player
+     * @param targetPlayerId the UUID of the player to protect
+     * @return Optional containing the updated room if successful, empty if conditions not met
+     */
+    public Optional<Room> submitDoctorProtect(UUID roomId, UUID playerId, UUID targetPlayerId) {
+        return roomService.getRoom(roomId)
+                .filter(r -> r.getPhase() == GamePhase.NIGHT)
+                .flatMap(room -> findPlayer(room, playerId)
+                        .filter(p -> p.getRole() == Player.Role.DOCTOR && p.isAlive())
+                        .map(doctor -> {
+                            room.setDoctorProtectedId(targetPlayerId);
+                            room.getNightActors().add("DOCTOR");
+                            checkAutoEndNight(room);
+                            return room;
+                        }));
+    }
+
+    /**
+     * Handles the detective's investigation of a target player.
+     * Returns the target player so the detective can learn their role.
+     * Auto-ends the night if all night actors have submitted.
+     *
+     * @param roomId the UUID of the room
+     * @param playerId the UUID of the detective player
+     * @param targetPlayerId the UUID of the player to investigate
+     * @return Optional containing the investigated player if successful, empty if conditions not met
+     */
+    public Optional<Player> submitDetectiveInvestigate(UUID roomId, UUID playerId, UUID targetPlayerId) {
+        return roomService.getRoom(roomId)
+                .filter(r -> r.getPhase() == GamePhase.NIGHT)
+                .flatMap(room -> findPlayer(room, playerId)
+                        .filter(p -> p.getRole() == Player.Role.DETECTIVE && p.isAlive())
+                        .flatMap(detective -> {
+                            room.getNightActors().add("DETECTIVE");
+                            checkAutoEndNight(room);
+                            return findPlayer(room, targetPlayerId);
+                        }));
+    }
+
+    /**
+     * Manually ends the night phase, resolving all pending night actions and transitioning to DAY.
      *
      * @param roomId the UUID of the room
      * @return Optional containing the updated room if successful, empty if not in NIGHT phase
@@ -82,9 +125,36 @@ public class GameService {
         return roomService.getRoom(roomId)
                 .filter(r -> r.getPhase() == GamePhase.NIGHT)
                 .map(room -> {
-                    room.setPhase(GamePhase.DAY);
+                    resolveNight(room);
                     return room;
                 });
+    }
+
+    private void checkAutoEndNight(Room room) {
+        if (room.getPhase() != GamePhase.NIGHT) return;
+        Set<String> expected = new HashSet<>();
+        expected.add("MAFIA");
+        if (room.getAlivePlayers().stream().anyMatch(p -> p.getRole() == Player.Role.DETECTIVE)) {
+            expected.add("DETECTIVE");
+        }
+        if (room.getAlivePlayers().stream().anyMatch(p -> p.getRole() == Player.Role.DOCTOR)) {
+            expected.add("DOCTOR");
+        }
+        if (room.getNightActors().containsAll(expected)) {
+            resolveNight(room);
+        }
+    }
+
+    private void resolveNight(Room room) {
+        UUID targetId = room.getMafiaTargetId();
+        UUID protectedId = room.getDoctorProtectedId();
+        if (targetId != null && !targetId.equals(protectedId)) {
+            findPlayer(room, targetId).ifPresent(p -> p.setAlive(false));
+        }
+        room.setMafiaTargetId(null);
+        room.setDoctorProtectedId(null);
+        room.getNightActors().clear();
+        room.setPhase(GamePhase.DAY);
     }
 
     /**
@@ -153,10 +223,13 @@ public class GameService {
                             .map(Map.Entry::getKey);
                     lynched.flatMap(id -> findPlayer(room, id)).ifPresent(p -> p.setAlive(false));
                     room.getVotes().clear();
-                    if (checkWinCondition(room).isPresent()) {
+                    Optional<Player.Role> win = checkWinCondition(room);
+                    if (win.isPresent()) {
                         room.setPhase(GamePhase.ENDED);
+                        room.setWinner(win.get());
                     } else {
                         room.setPhase(GamePhase.NIGHT);
+                        room.getNightActors().clear();
                     }
                     return room;
                 });

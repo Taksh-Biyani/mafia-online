@@ -4,9 +4,11 @@ import com.mafia.game.model.GamePhase;
 import com.mafia.game.model.Player;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,6 +52,19 @@ public class Room {
     /** Votes cast during the voting phase: voterId -> targetPlayerId */
     @Builder.Default
     private Map<UUID, UUID> votes = new HashMap<>();
+
+    /** ID of the mafia's chosen kill target for the current night (null until mafia acts) */
+    private UUID mafiaTargetId;
+
+    /** ID of the doctor's chosen protection target for the current night (null until doctor acts) */
+    private UUID doctorProtectedId;
+
+    /** Roles that have submitted their night action this night (used for auto-end-night detection) */
+    @Builder.Default
+    private Set<String> nightActors = new HashSet<>();
+
+    /** Winning role when the game ends: CITIZEN means town wins, MAFIA means mafia wins (null while game is ongoing) */
+    private Player.Role winner;
 
     /**
      * Checks if the room has reached its maximum player capacity.

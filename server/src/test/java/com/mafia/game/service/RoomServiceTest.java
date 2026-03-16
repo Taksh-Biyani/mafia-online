@@ -136,9 +136,8 @@ class RoomServiceTest {
         // When
         Optional<Player> joinedPlayer = roomService.joinRoom(testRoom.getId(), blankName);
 
-        // Then
-        assertTrue(joinedPlayer.isPresent());
-        assertEquals("Player", joinedPlayer.get().getName());
+        // Then — blank names are rejected (must be 3-12 characters)
+        assertTrue(joinedPlayer.isEmpty());
     }
 
     @Test

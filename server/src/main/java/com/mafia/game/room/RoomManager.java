@@ -31,9 +31,20 @@ public class RoomManager {
      * @return the newly created Room
      */
     public Room createRoom(String joinCode, int minPlayers, int maxPlayers, int dayDurationSeconds) {
+        String code;
+        if (joinCode != null && !joinCode.isBlank()) {
+            String trimmed = joinCode.trim();
+            if (trimmed.length() < 4 || trimmed.length() > 12) {
+                throw new IllegalArgumentException("Join code must be between 4 and 12 characters");
+            }
+            code = trimmed;
+        } else {
+            code = generateJoinCode();
+        }
+
         Room room = Room.builder()
                 .id(UUID.randomUUID())
-                .joinCode(joinCode != null && !joinCode.isBlank() ? joinCode : generateJoinCode())
+                .joinCode(code)
                 .phase(GamePhase.LOBBY)
                 .minPlayers(minPlayers)
                 .maxPlayers(maxPlayers)

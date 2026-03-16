@@ -14,6 +14,8 @@ class MafiaGameClient {
         this.dayDurationSeconds = 30;
         this.voteSubmitted = false;
         this.nightActionSubmitted = false;
+        this.transitioning = false;
+        this.clockAngle = 0;
 
         this.initializeEventListeners();
         this.showMessage('Welcome to Mafia Online!', 'info');
@@ -42,39 +44,73 @@ class MafiaGameClient {
         document.getElementById('leave-room-btn').addEventListener('click', () => this.leaveRoom());
     }
 
-    // --- Navigation ---
+    // --- Animated Navigation ---
+
+    navigateTo(sectionId, callback) {
+        if (this.transitioning) return;
+
+        const target = document.getElementById(sectionId);
+        if (!target) return;
+
+        const current = document.querySelector('.menu-section:not(.hidden)');
+
+        // Stop polling when leaving game room
+        if (current && current.id === 'game-room-section' && sectionId !== 'game-room-section') {
+            this.stopRoomPolling();
+        }
+
+        const reveal = () => {
+            // Swap background pattern: weapons ↔ magnifying glass + first aid kit
+            if (sectionId === 'game-room-section') {
+                document.body.classList.add('in-game');
+            } else {
+                document.body.classList.remove('in-game');
+            }
+
+            target.classList.remove('hidden');
+            void target.offsetWidth;
+            target.classList.add('section-enter');
+            target.addEventListener('animationend', () => {
+                target.classList.remove('section-enter');
+                this.transitioning = false;
+            }, { once: true });
+            if (callback) callback();
+        };
+
+        if (current && current !== target && !current.classList.contains('hidden')) {
+            this.transitioning = true;
+            current.classList.add('section-exit');
+            current.addEventListener('animationend', () => {
+                current.classList.add('hidden');
+                current.classList.remove('section-exit');
+                reveal();
+            }, { once: true });
+        } else {
+            reveal();
+        }
+    }
 
     showMainMenu() {
-        this.hideAllSections();
-        document.getElementById('main-menu').classList.remove('hidden');
+        this.navigateTo('main-menu');
     }
 
     showCreateRoom() {
-        this.hideAllSections();
-        document.getElementById('create-room-section').classList.remove('hidden');
+        this.navigateTo('create-room-section');
     }
 
     showJoinRoom() {
-        this.hideAllSections();
-        document.getElementById('join-room-section').classList.remove('hidden');
+        this.navigateTo('join-room-section');
     }
 
     showRoomList() {
-        this.hideAllSections();
-        document.getElementById('room-list-section').classList.remove('hidden');
-        this.listRooms();
+        this.navigateTo('room-list-section', () => this.listRooms());
     }
 
     showGameRoom() {
-        this.hideAllSections();
-        document.getElementById('game-room-section').classList.remove('hidden');
-        this.updateRoomDisplay();
-        this.startRoomPolling();
-    }
-
-    hideAllSections() {
-        document.querySelectorAll('.menu-section').forEach(s => s.classList.add('hidden'));
-        this.stopRoomPolling();
+        this.navigateTo('game-room-section', () => {
+            this.updateRoomDisplay();
+            this.startRoomPolling();
+        });
     }
 
     // --- API calls ---
@@ -86,7 +122,12 @@ class MafiaGameClient {
         const maxPlayers = parseInt(document.getElementById('max-players').value);
         const dayDurationSeconds = parseInt(document.getElementById('day-duration').value) || 30;
 
-        if (!creatorName) { this.showMessage('Please enter your name', 'error'); return; }
+        if (!creatorName || creatorName.length < 3 || creatorName.length > 12) {
+            this.showMessage('Name must be between 3 and 12 characters', 'error'); return;
+        }
+        if (joinCode && (joinCode.length < 4 || joinCode.length > 12)) {
+            this.showMessage('Room code must be between 4 and 12 characters', 'error'); return;
+        }
         if (maxPlayers < minPlayers) { this.showMessage('Max players must be >= min players', 'error'); return; }
 
         try {
@@ -123,8 +164,12 @@ class MafiaGameClient {
         const roomCode = document.getElementById('room-code').value.trim().toUpperCase();
         const playerName = document.getElementById('player-name').value.trim();
 
-        if (!roomCode) { this.showMessage('Please enter a room code', 'error'); return; }
-        if (!playerName) { this.showMessage('Please enter your name', 'error'); return; }
+        if (!roomCode || roomCode.length < 4 || roomCode.length > 12) {
+            this.showMessage('Room code must be between 4 and 12 characters', 'error'); return;
+        }
+        if (!playerName || playerName.length < 3 || playerName.length > 12) {
+            this.showMessage('Name must be between 3 and 12 characters', 'error'); return;
+        }
 
         try {
             const response = await fetch(`${this.baseUrl}/api/rooms/join?code=${encodeURIComponent(roomCode)}`, {
@@ -209,9 +254,23 @@ class MafiaGameClient {
         this.dayTimerStart = null;
         this.voteSubmitted = false;
         this.nightActionSubmitted = false;
-        document.getElementById('role-banner').classList.add('hidden');
-        document.getElementById('phase-actions').innerHTML = '';
-        this.showMainMenu();
+
+        // Force-clear any in-progress transition
+        this.transitioning = false;
+        document.body.classList.remove('in-game');
+        document.querySelectorAll('.menu-section').forEach(s => {
+            s.classList.remove('section-enter', 'section-exit');
+            s.classList.add('hidden');
+        });
+        this.stopRoomPolling();
+
+        // Navigate to main menu with animation; clean up game room after transition
+        this.navigateTo('main-menu', () => {
+            document.getElementById('role-banner').classList.add('hidden');
+            document.getElementById('phase-actions').innerHTML = '';
+            const clock = document.getElementById('phase-clock');
+            if (clock) clock.classList.add('clock-hidden');
+        });
     }
 
     async updateRoomDisplay() {
@@ -244,6 +303,7 @@ class MafiaGameClient {
                     this.dayTimerStart = Date.now();
                     this.dayDurationSeconds = room.dayDurationSeconds || 30;
                 }
+                this.updateClock(room.phase);
                 this.currentPhase = room.phase;
             }
 
@@ -258,6 +318,33 @@ class MafiaGameClient {
             console.error('Failed to update room display:', error);
         }
     }
+
+    // --- Phase Clock ---
+
+    updateClock(newPhase) {
+        const hand = document.getElementById('clock-hand');
+        const clock = document.getElementById('phase-clock');
+        if (!hand || !clock) return;
+
+        if (newPhase === 'LOBBY') {
+            clock.classList.add('clock-hidden');
+            return;
+        }
+        clock.classList.remove('clock-hidden');
+
+        // Target angles: UP (0) = day, DOWN (180) = night, RIGHT (90) = voting
+        const angles = { NIGHT: 180, DAY: 0, VOTING: 90, ENDED: 0 };
+        const target = angles[newPhase] ?? 0;
+
+        // Spin forward: 2 full rotations + delta to land on target
+        const currentMod = ((this.clockAngle % 360) + 360) % 360;
+        const delta = ((target - currentMod) % 360 + 360) % 360;
+        this.clockAngle += 720 + delta;
+
+        hand.style.transform = `rotate(${this.clockAngle}deg)`;
+    }
+
+    // --- Role Display ---
 
     async fetchMyRole() {
         try {
@@ -289,6 +376,8 @@ class MafiaGameClient {
         banner.classList.remove('hidden');
     }
 
+    // --- Phase UI ---
+
     renderPhaseUI(room) {
         const container = document.getElementById('phase-actions');
         const myPlayer = room.players.find(p => p.id === this.currentPlayerId);
@@ -305,15 +394,43 @@ class MafiaGameClient {
                 } else if (!isAlive) {
                     container.innerHTML = '<p class="phase-hint">You are eliminated. Watch the night unfold...</p>';
                 } else if (this.myRole === 'MAFIA') {
-                    const targets = room.players.filter(p => p.alive && p.id !== this.currentPlayerId);
+                    const mafiaTargets = room.players.filter(p => p.alive && p.id !== this.currentPlayerId);
                     container.innerHTML = `
                         <div class="action-panel">
                             <h3>Choose your target to eliminate</h3>
                             <div class="target-list">
-                                ${targets.map(p => `
+                                ${mafiaTargets.map(p => `
                                     <button class="btn btn-danger target-btn"
                                         onclick="gameClient.submitNightAction('${p.id}')">
                                         ${p.name}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                } else if (this.myRole === 'DETECTIVE') {
+                    const investigateTargets = room.players.filter(p => p.alive && p.id !== this.currentPlayerId);
+                    container.innerHTML = `
+                        <div class="action-panel">
+                            <h3>Investigate a player to learn their role</h3>
+                            <div class="target-list">
+                                ${investigateTargets.map(p => `
+                                    <button class="btn btn-primary target-btn"
+                                        onclick="gameClient.submitDetectiveInvestigate('${p.id}')">
+                                        ${p.name}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                } else if (this.myRole === 'DOCTOR') {
+                    const protectTargets = room.players.filter(p => p.alive);
+                    container.innerHTML = `
+                        <div class="action-panel">
+                            <h3>Choose a player to protect tonight</h3>
+                            <div class="target-list">
+                                ${protectTargets.map(p => `
+                                    <button class="btn btn-success target-btn"
+                                        onclick="gameClient.submitDoctorProtect('${p.id}')">
+                                        ${p.name}${p.id === this.currentPlayerId ? ' (You)' : ''}
                                     </button>
                                 `).join('')}
                             </div>
@@ -349,16 +466,31 @@ class MafiaGameClient {
                 const aliveCount = room.players.filter(p => p.alive).length;
                 const votesIn = Object.keys(room.votes || {}).length;
 
+                // Build visible vote log — everyone sees how everyone voted
+                const voteEntries = Object.entries(room.votes || {}).map(([voterId, targetId]) => {
+                    const voter = room.players.find(p => p.id === voterId);
+                    const target = room.players.find(p => p.id === targetId);
+                    return `<li><strong>${voter?.name || '?'}</strong> voted for <strong>${target?.name || '?'}</strong></li>`;
+                }).join('');
+                const voteLog = voteEntries
+                    ? `<ul class="vote-log">${voteEntries}</ul>`
+                    : '';
+
                 if (this.voteSubmitted) {
                     container.innerHTML = `
                         <div class="action-panel">
                             <p class="phase-hint">Vote submitted. Waiting for others... (${votesIn}/${aliveCount} voted)</p>
+                            ${voteLog}
                             ${this.isHost ? `<button class="btn btn-warning" onclick="gameClient.forceResolveVotes()">Force Resolve</button>` : ''}
                         </div>`;
                 } else if (!isAlive) {
-                    container.innerHTML = `<p class="phase-hint">You are eliminated. Watching the vote... (${votesIn}/${aliveCount} voted)</p>`;
+                    container.innerHTML = `
+                        <div class="action-panel">
+                            <p class="phase-hint">You are eliminated. Watching the vote... (${votesIn}/${aliveCount} voted)</p>
+                            ${voteLog}
+                        </div>`;
                 } else {
-                    const voteTargets = room.players.filter(p => p.alive && p.id !== this.currentPlayerId);
+                    const voteTargets = room.players.filter(p => p.alive);
                     container.innerHTML = `
                         <div class="action-panel">
                             <h3>Vote to eliminate a player (${votesIn}/${aliveCount} voted)</h3>
@@ -366,28 +498,37 @@ class MafiaGameClient {
                                 ${voteTargets.map(p => `
                                     <button class="btn btn-warning target-btn"
                                         onclick="gameClient.submitVote('${p.id}')">
-                                        ${p.name}
+                                        ${p.name}${p.id === this.currentPlayerId ? ' (You)' : ''}
                                     </button>
                                 `).join('')}
                             </div>
+                            ${voteLog}
                             ${this.isHost ? `<button class="btn btn-danger" style="margin-top:10px" onclick="gameClient.forceResolveVotes()">Force Resolve</button>` : ''}
                         </div>`;
                 }
                 break;
             }
 
-            case 'ENDED':
+            case 'ENDED': {
+                const winnerText = room.winner === 'MAFIA' ? 'Mafia Wins!' : 'Town Wins!';
+                const roleRows = room.players.map(p =>
+                    `<li><strong>${p.name}</strong>: ${p.role}${p.alive ? '' : ' <span class="status-dead">(eliminated)</span>'}</li>`
+                ).join('');
                 container.innerHTML = `
                     <div class="game-over-banner">
-                        <h3>Game Over</h3>
-                        <p>The game has ended!</p>
+                        <h2>${winnerText}</h2>
+                        <h4>Final Roles</h4>
+                        <ul style="list-style:none;padding:0;margin:0">${roleRows}</ul>
                     </div>`;
                 break;
+            }
 
             default:
                 container.innerHTML = '';
         }
     }
+
+    // --- Game Actions ---
 
     async endDay() {
         try {
@@ -439,15 +580,49 @@ class MafiaGameClient {
         }
     }
 
-    async startVoting() {
-        // Transitions DAY -> VOTING by submitting a dummy first vote trigger.
-        // The host clicks "Start Voting" which just calls the vote endpoint to flip the phase.
-        // Since submitVote auto-transitions DAY->VOTING on first call, we use a small workaround:
-        // we POST to /night/end equivalent — but for DAY there is no dedicated endpoint yet.
-        // For now: just update the display and let the host's first vote trigger the transition.
-        this.showMessage('Voting phase started! Cast your votes.', 'info');
-        document.getElementById('phase-actions').innerHTML =
-            '<p class="phase-hint">Waiting for players to vote...</p>';
+    async submitDetectiveInvestigate(targetId) {
+        try {
+            const response = await fetch(
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/investigate?playerId=${this.currentPlayerId}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetPlayerId: targetId })
+                }
+            );
+
+            if (response.ok) {
+                const player = await response.json();
+                this.nightActionSubmitted = true;
+                this.showMessage(`Investigation: ${player.name} is ${player.role}`, 'info');
+            } else {
+                this.showMessage(`Failed to investigate: ${await response.text()}`, 'error');
+            }
+        } catch (error) {
+            this.showMessage('Network error investigating', 'error');
+        }
+    }
+
+    async submitDoctorProtect(targetId) {
+        try {
+            const response = await fetch(
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/protect?playerId=${this.currentPlayerId}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetPlayerId: targetId })
+                }
+            );
+
+            if (response.ok) {
+                this.nightActionSubmitted = true;
+                this.showMessage('Protection chosen. Waiting for day...', 'success');
+            } else {
+                this.showMessage(`Failed to protect: ${await response.text()}`, 'error');
+            }
+        } catch (error) {
+            this.showMessage('Network error submitting protection', 'error');
+        }
     }
 
     async submitVote(targetId) {
@@ -471,6 +646,8 @@ class MafiaGameClient {
             this.showMessage('Network error submitting vote', 'error');
         }
     }
+
+    // --- Display ---
 
     displayRooms(rooms) {
         const container = document.getElementById('rooms-list');
@@ -515,6 +692,8 @@ class MafiaGameClient {
         this.showJoinRoom();
     }
 
+    // --- Polling ---
+
     startRoomPolling() {
         this.stopRoomPolling();
         this.roomPollingInterval = setInterval(() => this.updateRoomDisplay(), 2000);
@@ -526,6 +705,8 @@ class MafiaGameClient {
             this.roomPollingInterval = null;
         }
     }
+
+    // --- Messages ---
 
     showMessage(text, type = 'info') {
         const messagesDiv = document.getElementById('messages');

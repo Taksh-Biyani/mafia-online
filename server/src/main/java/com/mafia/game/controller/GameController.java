@@ -95,6 +95,44 @@ public class GameController {
     }
 
     /**
+     * Submits the doctor's protection choice for the current night.
+     * Only the alive doctor can call this during NIGHT phase.
+     *
+     * @param roomId the UUID of the room
+     * @param playerId the UUID of the doctor player
+     * @param request contains the target player ID to protect
+     * @return ResponseEntity containing the updated Room state or 400 if invalid
+     */
+    @PostMapping("/night/protect")
+    public ResponseEntity<Room> doctorProtect(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId,
+            @RequestBody NightActionRequest request) {
+        return gameService.submitDoctorProtect(roomId, playerId, request.getTargetPlayerId())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.badRequest().build());
+    }
+
+    /**
+     * Submits the detective's investigation for the current night.
+     * Returns the investigated player (with their role) — visible only to the detective.
+     *
+     * @param roomId the UUID of the room
+     * @param playerId the UUID of the detective player
+     * @param request contains the target player ID to investigate
+     * @return ResponseEntity containing the investigated Player or 400 if invalid
+     */
+    @PostMapping("/night/investigate")
+    public ResponseEntity<Player> detectiveInvestigate(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId,
+            @RequestBody NightActionRequest request) {
+        return gameService.submitDetectiveInvestigate(roomId, playerId, request.getTargetPlayerId())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.badRequest().build());
+    }
+
+    /**
      * Manually ends the night phase and transitions to day phase.
      * Returns 200 OK with updated room on success, or 400 Bad Request if not in NIGHT phase.
      *
