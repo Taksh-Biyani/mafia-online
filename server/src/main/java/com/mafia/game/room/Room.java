@@ -3,7 +3,9 @@ package com.mafia.game.room;
 import com.mafia.game.model.GamePhase;
 import com.mafia.game.model.Player;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -38,6 +40,16 @@ public class Room {
     /** List of players currently in this room */
     @Builder.Default
     private List<Player> players = new ArrayList<>();
+
+    /** UUID of the player who created the room; only they can start the game */
+    private UUID hostId;
+
+    /** Duration of the day discussion phase in seconds (host-configurable, default 30) */
+    private int dayDurationSeconds;
+
+    /** Votes cast during the voting phase: voterId -> targetPlayerId */
+    @Builder.Default
+    private Map<UUID, UUID> votes = new HashMap<>();
 
     /**
      * Checks if the room has reached its maximum player capacity.

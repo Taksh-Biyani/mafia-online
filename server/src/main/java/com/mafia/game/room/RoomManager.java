@@ -30,13 +30,14 @@ public class RoomManager {
      * @param maxPlayers maximum players allowed in the room
      * @return the newly created Room
      */
-    public Room createRoom(String joinCode, int minPlayers, int maxPlayers) {
+    public Room createRoom(String joinCode, int minPlayers, int maxPlayers, int dayDurationSeconds) {
         Room room = Room.builder()
                 .id(UUID.randomUUID())
                 .joinCode(joinCode != null && !joinCode.isBlank() ? joinCode : generateJoinCode())
                 .phase(GamePhase.LOBBY)
                 .minPlayers(minPlayers)
                 .maxPlayers(maxPlayers)
+                .dayDurationSeconds(dayDurationSeconds > 0 ? dayDurationSeconds : 30)
                 .build();
         roomsById.put(room.getId(), room);
         roomsByJoinCode.put(room.getJoinCode().toUpperCase(), room);

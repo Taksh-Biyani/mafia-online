@@ -31,7 +31,7 @@ class RoomServiceTest {
         roomManager.getAllRooms().keySet().forEach(roomManager::removeRoom);
 
         // Create a test room
-        testRoom = roomManager.createRoom("SERVICETEST", 3, 6);
+        testRoom = roomManager.createRoom("SERVICETEST", 3, 6, 30);
     }
 
     @Test
@@ -42,7 +42,7 @@ class RoomServiceTest {
         int maxPlayers = 8;
 
         // When
-        Room createdRoom = roomService.createRoom(joinCode, minPlayers, maxPlayers);
+        Room createdRoom = roomService.createRoom(joinCode, minPlayers, maxPlayers, 30);
 
         // Then
         assertNotNull(createdRoom);
