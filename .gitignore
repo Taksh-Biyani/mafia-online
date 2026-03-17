@@ -25,3 +25,8 @@ Thumbs.db
 
 # Environment variables
 .env
+
+# Claude Flow
+.claude-flow/
+.claude/
+.mcp.json

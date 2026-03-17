@@ -1,5 +1,7 @@
 package com.mafia.game.room;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.mafia.game.model.ChatMessage;
 import com.mafia.game.model.GamePhase;
 import com.mafia.game.model.Player;
 import java.util.ArrayList;
@@ -65,6 +67,21 @@ public class Room {
 
     /** Winning role when the game ends: CITIZEN means town wins, MAFIA means mafia wins (null while game is ongoing) */
     private Player.Role winner;
+
+    /** Chat history for this room, capped at 200 messages. Not included in room JSON — fetched separately per-player. */
+    @JsonIgnore
+    @Builder.Default
+    private List<ChatMessage> chatMessages = new ArrayList<>();
+
+    /**
+     * Adds a chat message, evicting the oldest if the cap of 200 is reached.
+     */
+    public void addMessage(ChatMessage m) {
+        if (chatMessages.size() >= 200) {
+            chatMessages.remove(0);
+        }
+        chatMessages.add(m);
+    }
 
     /**
      * Checks if the room has reached its maximum player capacity.

@@ -102,7 +102,9 @@ class RoomTest {
     @Test
     void testCanStartGame_WhenNotEnoughPlayers() {
         // Given - remove one player to go below minimum
+
         room.getPlayers().remove(player1);
+
 
         // When
         boolean canStart = room.canStartGame();

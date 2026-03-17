@@ -212,6 +212,21 @@
 
     </div>
 
-    <script src="script.js"></script>
+    <!-- ── Chat (fixed, top-right of viewport) ──────────── -->
+    <button id="chat-toggle-btn" aria-label="Open chat">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+        </svg>
+    </button>
+    <div id="chat-panel">
+        <div id="chat-channel-label"></div>
+        <ul id="chat-log"></ul>
+        <form id="chat-form">
+            <label for="chat-input" class="sr-only">Chat message</label>
+            <input id="chat-input" type="text" maxlength="200" placeholder="Say something..." autocomplete="off" />
+        </form>
+    </div>
+
+<script src="script.js"></script>
 </body>
 </html>

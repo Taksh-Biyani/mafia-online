@@ -2,7 +2,7 @@
 
 class MafiaGameClient {
     constructor() {
-        this.baseUrl = 'http://localhost:8080';
+        this.baseUrl = window.location.origin;
         this.currentRoomId = null;
         this.currentPlayerId = null;
         this.isHost = false;
@@ -18,6 +18,8 @@ class MafiaGameClient {
         this.clockAngle = 0;
 
         this.currentScene = 'scene-menu';
+        this.chatPanelOpen = false;
+        this.chatLastCount = 0;
 
         this.initializeEventListeners();
         this.showMessage('Welcome to Mafia Online!', 'info');
@@ -93,6 +95,18 @@ class MafiaGameClient {
         // Game room
         document.getElementById('start-game-btn').addEventListener('click', () => this.startGame());
         document.getElementById('leave-room-btn').addEventListener('click', () => this.leaveRoom());
+
+        // Chat
+        document.getElementById('chat-toggle-btn').addEventListener('click', () => this.toggleChatPanel());
+        document.getElementById('chat-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (text) {
+                this.sendChatMessage(text);
+                input.value = '';
+            }
+        });
     }
 
     // --- Animated Navigation ---
@@ -105,9 +119,11 @@ class MafiaGameClient {
 
         const current = document.querySelector('.menu-section:not(.hidden)');
 
-        // Stop polling when leaving game room
+        // Stop polling and hide chat when leaving game room
         if (current && current.id === 'game-room-section' && sectionId !== 'game-room-section') {
             this.stopRoomPolling();
+            document.getElementById('chat-toggle-btn').classList.remove('chat-btn-visible');
+            if (this.chatPanelOpen) this.toggleChatPanel();
         }
 
         const reveal = () => {
@@ -159,6 +175,8 @@ class MafiaGameClient {
         this.navigateTo('game-room-section', () => {
             this.updateRoomDisplay();
             this.startRoomPolling();
+            // Open chat panel by default when entering a game room
+            if (!this.chatPanelOpen) this.toggleChatPanel();
         });
     }
 
@@ -196,6 +214,7 @@ class MafiaGameClient {
                 const data = await response.json();
                 this.currentRoomId = data.room.id;
                 this.currentPlayerId = data.creator.id;
+                this.currentPlayerName = creatorName;
                 this.isHost = true;
                 this.myRole = null;
                 this.roleDisplayed = false;
@@ -231,6 +250,7 @@ class MafiaGameClient {
                 const player = await response.json();
                 this.currentPlayerId = player.id;
                 this.currentRoomId = player.roomId;
+                this.currentPlayerName = player.name;
                 this.isHost = false;
                 this.myRole = null;
                 this.roleDisplayed = false;
@@ -303,6 +323,9 @@ class MafiaGameClient {
         this.dayTimerStart = null;
         this.voteSubmitted = false;
         this.nightActionSubmitted = false;
+        this.chatLastCount = 0;
+        document.getElementById('chat-toggle-btn').classList.remove('chat-btn-visible');
+        if (this.chatPanelOpen) this.toggleChatPanel();
 
         // Force-clear any in-progress transition
         this.transitioning = false;
@@ -359,11 +382,14 @@ class MafiaGameClient {
             this.displayPlayers(room.players);
             this.renderPhaseUI(room);
             this.setScene(this.getSceneForState(room));
+            this.updateChatButtonVisibility(room);
 
             // Fetch own role once when game moves out of lobby
             if (room.phase !== 'LOBBY' && !this.roleDisplayed) {
                 await this.fetchMyRole();
             }
+
+            await this.fetchAndRenderChat();
         } catch (error) {
             console.error('Failed to update room display:', error);
         }
@@ -739,6 +765,7 @@ class MafiaGameClient {
 
     quickJoin(roomCode) {
         document.getElementById('room-code').value = roomCode;
+        this.transitioning = false;
         this.showJoinRoom();
     }
 
@@ -754,6 +781,102 @@ class MafiaGameClient {
             clearInterval(this.roomPollingInterval);
             this.roomPollingInterval = null;
         }
+    }
+
+    // --- Chat ---
+
+    toggleChatPanel() {
+        const panel = document.getElementById('chat-panel');
+        this.chatPanelOpen = !this.chatPanelOpen;
+        panel.classList.toggle('chat-open', this.chatPanelOpen);
+    }
+
+    updateChatButtonVisibility(room) {
+        const btn = document.getElementById('chat-toggle-btn');
+        if (!btn) return;
+        const myPlayer = room.players.find(p => p.id === this.currentPlayerId);
+        const isAlive = myPlayer ? myPlayer.alive : false;
+        if (isAlive && this.myRole !== 'MAFIA' && room.phase === 'NIGHT') {
+            btn.classList.remove('chat-btn-visible');
+            if (this.chatPanelOpen) this.toggleChatPanel();
+        } else {
+            btn.classList.add('chat-btn-visible');
+        }
+
+        const label = document.getElementById('chat-channel-label');
+        if (!label) return;
+        if (!isAlive) {
+            label.textContent = 'Dead Chat';
+        } else if (this.myRole === 'MAFIA' && room.phase === 'NIGHT') {
+            label.textContent = 'Mafia Chat';
+        } else {
+            label.textContent = 'Game Chat';
+        }
+    }
+
+    async fetchAndRenderChat() {
+        if (!this.currentRoomId || !this.currentPlayerId) return;
+        try {
+            const response = await fetch(
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/chat?playerId=${this.currentPlayerId}`
+            );
+            if (!response.ok) return;
+            const messages = await response.json();
+            if (messages.length === this.chatLastCount) return;
+
+            const log = document.getElementById('chat-log');
+            if (!log) return;
+            const wasAtBottom = log.scrollHeight - log.scrollTop <= log.clientHeight + 20;
+
+            log.innerHTML = '';
+            messages.forEach(msg => {
+                const li = document.createElement('li');
+                if (msg.channel === 'DEAD') li.classList.add('channel-dead');
+                if (msg.channel === 'MAFIA_NIGHT') li.classList.add('channel-mafia');
+                const isMe = msg.playerName === this.currentPlayerName;
+                const nameLabel = isMe
+                    ? `${this.escapeHtml(msg.playerName)} <span class="chat-you">(You)</span>`
+                    : this.escapeHtml(msg.playerName);
+                li.innerHTML = `<span class="chat-name">${nameLabel}:</span><span class="chat-text">${this.escapeHtml(msg.message)}</span>`;
+                log.appendChild(li);
+            });
+
+            this.chatLastCount = messages.length;
+            if (wasAtBottom || messages.length > this.chatLastCount) {
+                log.scrollTop = log.scrollHeight;
+            }
+        } catch (error) {
+            // silently ignore chat fetch errors
+        }
+    }
+
+    async sendChatMessage(text) {
+        if (!this.currentRoomId || !this.currentPlayerId) return;
+        try {
+            const response = await fetch(
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/chat?playerId=${this.currentPlayerId}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                }
+            );
+            if (response.status === 429) {
+                this.showMessage('Slow down!', 'warning');
+            } else if (response.status === 403) {
+                this.showMessage("You can't chat right now", 'error');
+            } else if (!response.ok) {
+                this.showMessage('Failed to send message', 'error');
+            } else {
+                await this.fetchAndRenderChat();
+            }
+        } catch (error) {
+            this.showMessage('Network error sending message', 'error');
+        }
+    }
+
+    escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     // --- Messages ---

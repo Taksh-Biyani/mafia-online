@@ -2,6 +2,18 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap');
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+}
+
 :root {
     --bg:           #000000;
     --bg-card:      #0f0f0f;
@@ -135,7 +147,7 @@ h1 {
     text-shadow:
         0 0 20px rgba(192,57,43,0.6),
         0 0 40px rgba(139,0,0,0.3),
-        2px 2px 0px #1a0000;
+        2px 2px 0 #1a0000;
     line-height: 1;
 }
 
@@ -663,6 +675,165 @@ input[type="number"]:focus {
     margin-top: 14px;
     border-top: 1px solid var(--border);
     padding-top: 14px;
+}
+
+/* ── Chat ────────────────────────────────────────────── */
+
+/* Toggle button — top-right, ~4× larger than default, icon only */
+#chat-toggle-btn {
+    position: fixed;
+    top: 1vh;
+    right: 1vw;
+    left: auto !important;
+    margin: 0;
+    width: 3.5vw;
+    height: 3.5vw;
+    background: #ffffff;
+    border: 2.5px solid #000000;
+    border-radius: 1vw;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    padding: 0;
+    transition: background 0.15s;
+    box-shadow: 0 0.3vw 1vw rgba(0,0,0,0.18);
+}
+
+#chat-toggle-btn.chat-btn-visible {
+    display: flex;
+}
+
+#chat-toggle-btn:hover {
+    background: #f0f0f0;
+}
+
+#chat-toggle-btn svg {
+    display: block;
+    width: 40%;
+    height: 40%;
+}
+
+/* Panel — right side, below the button, white box with black border */
+#chat-panel {
+    position: fixed;
+    top: calc(3.5vw + 1vh);
+    right: 1vw;
+    left: auto !important;
+    margin: 0;
+    width: 22vw;
+    height: calc(100vh - 3.5vw - 5vh);
+    background: #ffffff;
+    border: 2.5px solid #000000;
+    border-radius: 1vw;
+    z-index: 299;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 0.4vw 1.5vw rgba(0,0,0,0.22);
+    text-align: left;
+    /* Hidden until opened */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+
+#chat-panel.chat-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Channel label — top of the white box */
+#chat-channel-label {
+    flex-shrink: 0;
+    padding: 1vh 1vw;
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #555;
+    border-bottom: 1.5px solid #ddd;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    background: #f8f8f8;
+    text-align: left;
+}
+
+/* Message list — scrollable, grows to fill space between label and input */
+#chat-log {
+    flex: 1;
+    min-height: 0;
+    overflow-y: scroll;
+    list-style: none;
+    padding: 0.8vh 0.6vw;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4vh;
+    text-align: left;
+}
+
+#chat-log li {
+    padding: 0.5vh 0.5vw;
+    border-radius: 0.4vw;
+    font-size: 0.87em;
+    line-height: 1.5;
+    word-break: break-word;
+    text-align: left;
+    color: #111;
+    background: #f4f4f4;
+}
+
+#chat-log li .chat-name {
+    font-weight: bold;
+    color: #111;
+    margin-right: 0.3vw;
+}
+
+#chat-log li .chat-text {
+    color: #333;
+}
+
+#chat-log li .chat-you {
+    font-weight: normal;
+    color: #666;
+    font-size: 0.9em;
+}
+
+#chat-log li.channel-dead {
+    background: #ececec;
+    color: #666;
+}
+
+#chat-log li.channel-mafia {
+    background: #fff0f0;
+}
+
+/* Input — pinned to bottom of white box, enter to send */
+#chat-form {
+    flex-shrink: 0;
+    padding: 0.8vh 0.6vw;
+    border-top: 1.5px solid #ddd;
+    background: #ffffff;
+    text-align: left;
+}
+
+#chat-input {
+    display: block;
+    width: 100% !important;
+    box-sizing: border-box;
+    padding: 0.8vh 0.6vw;
+    background: #ffffff;
+    border: 1.5px solid #bbb;
+    border-radius: 0.5vw;
+    font-size: 0.9em;
+    font-family: Georgia, serif;
+    color: #111;
+    text-align: left;
+}
+
+#chat-input:focus {
+    outline: none;
+    border-color: #000;
 }
 
 /* ── Responsive ──────────────────────────────────────── */

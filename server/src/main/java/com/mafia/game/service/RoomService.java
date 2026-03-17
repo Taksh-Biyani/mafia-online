@@ -1,13 +1,18 @@
 package com.mafia.game.service;
 
+import com.mafia.game.model.ChatMessage;
 import com.mafia.game.model.GamePhase;
 import com.mafia.game.model.Player;
 import com.mafia.game.room.Room;
 import com.mafia.game.room.RoomManager;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Service layer for managing game rooms.
@@ -16,6 +21,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class RoomService {
     private final RoomManager roomManager;
+    private final Map<UUID, Long> lastMessageTime = new ConcurrentHashMap<>();
 
     /**
      * Constructs RoomService with dependency on RoomManager.
@@ -139,5 +145,71 @@ public class RoomService {
      */
     public void removeRoom(UUID roomId) {
         roomManager.removeRoom(roomId);
+    }
+
+    /**
+     * Posts a chat message from a player. Enforces rate limiting and channel access rules.
+     * Throws ResponseStatusException (400/403/404/429) on validation failure.
+     */
+    public ChatMessage postMessage(UUID roomId, UUID playerId, String text) {
+        if (text == null || text.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message cannot be empty");
+        }
+        if (text.length() > 200) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message too long");
+        }
+
+        long now = System.currentTimeMillis();
+        Long last = lastMessageTime.get(playerId);
+        if (last != null && now - last < 1500) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Slow down!");
+        }
+
+        Room room = roomManager.getRoom(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        Player player = room.findPlayer(playerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        ChatMessage.Channel channel;
+        if (!player.isAlive()) {
+            channel = ChatMessage.Channel.DEAD;
+        } else if (player.getRole() == Player.Role.MAFIA && room.getPhase() == GamePhase.NIGHT) {
+            channel = ChatMessage.Channel.MAFIA_NIGHT;
+        } else if (room.getPhase() == GamePhase.NIGHT) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can't chat right now");
+        } else {
+            channel = ChatMessage.Channel.GENERAL;
+        }
+
+        lastMessageTime.put(playerId, now);
+        ChatMessage msg = new ChatMessage(player.getName(), text.trim(), now, channel);
+        room.addMessage(msg);
+        return msg;
+    }
+
+    /**
+     * Returns the chat messages visible to the given player.
+     * Dead players see GENERAL + DEAD. Alive MAFIA see MAFIA_NIGHT. Others see GENERAL only.
+     */
+    public List<ChatMessage> getMessages(UUID roomId, UUID playerId) {
+        Room room = roomManager.getRoom(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        Player player = room.findPlayer(playerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        return room.getChatMessages().stream()
+                .filter(m -> canSeeChannel(player, m.channel()))
+                .toList();
+    }
+
+    private boolean canSeeChannel(Player player, ChatMessage.Channel channel) {
+        if (!player.isAlive()) {
+            return channel == ChatMessage.Channel.GENERAL || channel == ChatMessage.Channel.DEAD;
+        }
+        if (channel == ChatMessage.Channel.GENERAL) return true;
+        if (channel == ChatMessage.Channel.MAFIA_NIGHT) {
+            return player.getRole() == Player.Role.MAFIA;
+        }
+        return false;
     }
 }

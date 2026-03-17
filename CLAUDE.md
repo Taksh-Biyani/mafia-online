@@ -1,5 +1,25 @@
 # Mafia Online
 
+## Auto-Approved Commands (no permission needed)
+
+These commands can be run without asking the user first:
+
+| Command | Scope |
+|---|---|
+| `ls` / `dir` | List directory contents |
+| `cd` | Change working directory |
+| `mkdir` | Create directories |
+| `git status` | Show working tree status |
+| `git log` | View commit history |
+| `git diff` | View unstaged/staged changes (read-only) |
+| `git branch` | List branches |
+| `mvnw compile` | Compile server code |
+| `mvnw test` | Run tests |
+| `cat` / `head` / `tail` | Read file contents (prefer Read tool) |
+| `grep` / `find` | Search files (prefer Grep/Glob tools) |
+
+Everything else (git push, git reset, file deletion, server restart, package installs, etc.) requires explicit user approval.
+
 Web-based multiplayer Mafia party game. Spring Boot 4.0.2 / Java 21 backend + Vanilla JS frontend.
 
 ## Running the project

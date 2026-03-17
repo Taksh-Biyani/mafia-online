@@ -28,17 +28,28 @@ if errorlevel 1 goto :error
 echo.
 echo Step 3: Running the application...
 echo.
-echo Starting Mafia Game Server on http://localhost:8080
-echo The server is now running in the background.
-echo You can access the game at: http://localhost:8080
+
+REM Detect local IP address for LAN display
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4" ^| findstr /v "127.0.0.1"') do (
+    set LAN_IP=%%a
+    goto :got_ip
+)
+:got_ip
+set LAN_IP=%LAN_IP: =%
+
+echo Starting Mafia Game Server...
 echo.
+echo  Local access : http://localhost:8080
+echo  LAN access   : http://%LAN_IP%:8080
+echo.
+echo Share the LAN address with others on your WiFi to play together.
 echo To stop the server, close the "Mafia Game Server" command window that opened.
 echo.
 
 REM Start the server in a new command window
 start "Mafia Game Server" cmd /k "java -jar target/game-0.0.1-SNAPSHOT.jar"
 
-echo Server started successfully! The game is now running at http://localhost:8080
+echo Server started successfully!
 echo.
 
 goto :end

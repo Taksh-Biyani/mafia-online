@@ -1,10 +1,14 @@
 package com.mafia.game.controller;
 
+import com.mafia.game.api.ChatMessageRequest;
 import com.mafia.game.api.NightActionRequest;
 import com.mafia.game.api.VoteRequest;
+import com.mafia.game.model.ChatMessage;
 import com.mafia.game.model.Player;
 import com.mafia.game.room.Room;
 import com.mafia.game.service.GameService;
+import com.mafia.game.service.RoomService;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,14 +29,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/rooms/{roomId}")
 public class GameController {
     private final GameService gameService;
+    private final RoomService roomService;
 
     /**
-     * Constructs GameController with dependency on GameService.
-     *
-     * @param gameService the service for game logic and state management
+     * Constructs GameController with dependencies on GameService and RoomService.
      */
-    public GameController(GameService gameService) {
+    public GameController(GameService gameService, RoomService roomService) {
         this.gameService = gameService;
+        this.roomService = roomService;
     }
 
     /**
@@ -213,5 +217,29 @@ public class GameController {
         return gameService.getPlayer(roomId, playerId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Posts a chat message from a player.
+     * Returns 200 on success, 400 if empty/too long, 403 if not allowed to chat, 429 if sending too fast.
+     */
+    @PostMapping("/chat")
+    public ResponseEntity<Void> postChat(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId,
+            @RequestBody ChatMessageRequest request) {
+        roomService.postMessage(roomId, playerId, request.getMessage());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Returns the chat messages visible to the requesting player.
+     * Dead players see GENERAL + DEAD channels. Alive MAFIA see MAFIA_NIGHT. Others see GENERAL only.
+     */
+    @GetMapping("/chat")
+    public ResponseEntity<List<ChatMessage>> getChat(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId) {
+        return ResponseEntity.ok(roomService.getMessages(roomId, playerId));
     }
 }
