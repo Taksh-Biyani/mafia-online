@@ -2,25 +2,27 @@ package com.mafia.game.model;
 
 /**
  * Enum representing the different phases of a Mafia game.
- * - LOBBY: Waiting for players to join the game
- * - NIGHT: Mafia and special roles (Detective, Doctor) take actions
- * - DAY: Discussion phase where players can talk
- * - VOTING: Players vote to eliminate someone from the game
- * - ENDED: Game has concluded with a winner
+ * Night is split into three sequential sub-phases so each role acts in order.
  */
 public enum GamePhase {
     /** Lobby phase: game is waiting for players and hasn't started yet */
     LOBBY,
-    
-    /** Night phase: mafia and special roles perform their actions */
-    NIGHT,
-    
-    /** Day phase: all players are awake and can discuss */
+
+    /** Day phase: all players discuss who they suspect */
     DAY,
-    
-    /** Voting phase: players vote on who to eliminate during the day */
+
+    /** Voting phase: players vote on who to eliminate */
     VOTING,
-    
+
+    /** Night sub-phase 1: mafia collectively chooses a kill target */
+    NIGHT_MAFIA,
+
+    /** Night sub-phase 2: doctor chooses who to protect (skipped if no doctor alive) */
+    NIGHT_DOCTOR,
+
+    /** Night sub-phase 3: detective investigates a player (skipped if no detective alive) */
+    NIGHT_DETECTIVE,
+
     /** Game has ended with a winning team */
     ENDED
 }

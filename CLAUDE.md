@@ -47,23 +47,25 @@ mafia-online/
         │   └── WebSocketConfig.java   # STUB — not implemented
         ├── model/
         │   ├── Player.java            # id, name, role, alive, roomId
-        │   └── GamePhase.java         # Enum: LOBBY, NIGHT, DAY, VOTING, ENDED
+        │   ├── GamePhase.java         # Enum: LOBBY, NIGHT, DAY, VOTING, ENDED
+        │   └── ChatMessage.java       # record: playerName, message, timestamp, channel (GENERAL/MAFIA_NIGHT/DEAD)
         ├── room/
-        │   ├── Room.java              # id, joinCode, phase, minPlayers, maxPlayers, hostId, dayDurationSeconds, players, votes
+        │   ├── Room.java              # id, joinCode, phase, minPlayers, maxPlayers, hostId, dayDurationSeconds, players, votes, chatMessages (@JsonIgnore)
         │   └── RoomManager.java       # In-memory store (two ConcurrentHashMaps: by UUID + by join code)
         ├── service/
-        │   ├── RoomService.java       # create/join/leave/list rooms
-        │   └── GameService.java       # startGame, assignRoles, submitNightAction, endDay, submitVote, resolveVoting, checkWinCondition
+        │   ├── RoomService.java       # create/join/leave/list rooms; postMessage (rate-limited) + getMessages (per-player filtered)
+        │   └── GameService.java       # startGame, assignRoles, submitNightAction, submitDoctorProtect, submitDetectiveInvestigate, endDay, submitVote, resolveVoting, checkWinCondition
         ├── controller/
         │   ├── HomeController.java    # Serves index.html at /
         │   ├── RoomController.java    # REST: room CRUD
-        │   └── GameController.java    # REST: game actions
+        │   └── GameController.java    # REST: game actions + chat
         └── api/
             ├── CreateRoomRequest.java  # joinCode, playerName, minPlayers, maxPlayers, dayDurationSeconds
             ├── CreateRoomResponse.java # room + creator player
             ├── JoinRoomRequest.java
             ├── NightActionRequest.java
-            └── VoteRequest.java
+            ├── VoteRequest.java
+            └── ChatMessageRequest.java # message: String
 ```
 
 ## REST API
@@ -89,6 +91,10 @@ POST   /api/rooms/{roomId}/day/end?playerId=...           End discussion, start 
 POST   /api/rooms/{roomId}/vote?voterId=...               Submit vote (VOTING only; auto-resolves when all alive voted)
 POST   /api/rooms/{roomId}/vote/resolve?playerId=...      Force resolve votes early (host only)
 GET    /api/rooms/{roomId}/players/{playerId}             Get player details (used to reveal own role)
+POST   /api/rooms/{roomId}/night/protect?playerId=...     Doctor protects a target (NIGHT only)
+POST   /api/rooms/{roomId}/night/investigate?playerId=... Detective investigates a target — returns Player with role (NIGHT only)
+POST   /api/rooms/{roomId}/chat?playerId=...              Post chat message (rate-limited: 1500ms / 200 chars)
+GET    /api/rooms/{roomId}/chat?playerId=...              Get chat messages (filtered by player role/phase)
 ```
 
 ## Game logic
@@ -107,13 +113,21 @@ GET    /api/rooms/{roomId}/players/{playerId}             Get player details (us
 
 ## What's not implemented yet
 
-- **Detective action** — role assigned, no endpoint or frontend logic
-- **Doctor action** — role assigned, no endpoint or frontend logic
-- **Game end screen** — shows generic "Game Over", no winner or role reveal
+- **Detective UI** — endpoint exists (`/night/investigate`), no frontend for it
+- **Doctor UI** — endpoint exists (`/night/protect`), no frontend for it
+- **Game end screen** — shows generic "Game Over"; no winner announcement or role reveal
+- **Night timer** — no auto-advance; mafia must act or host calls `/night/end`
 - **WebSocket** — `WebSocketConfig.java` is an empty stub; using 2s polling instead
 - **Persistence** — all in-memory, wiped on server restart
-- **Security** — no auth, roles and vote map exposed in room JSON
+- **Security** — no auth; role and vote map exposed in room JSON
 - **Tests** — GameService and GameController have zero test coverage
+
+## Chat system
+
+Channels: `GENERAL` (lobby/day/voting), `MAFIA_NIGHT` (mafia during night), `DEAD` (dead players only).
+Spam rules: 1500ms cooldown, 200-char max. Messages capped at 200 per room (oldest dropped).
+Frontend: slide-out panel (top-right button), auto-opens on room entry, polled every 2s.
+Dead players see GENERAL + DEAD. Alive non-MAFIA during NIGHT have no chat access.
 
 ## Conventions
 

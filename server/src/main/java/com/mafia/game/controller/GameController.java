@@ -144,10 +144,12 @@ public class GameController {
      * @return ResponseEntity containing the updated Room state or error status
      */
     @PostMapping("/night/end")
-    public ResponseEntity<Room> endNight(@PathVariable UUID roomId) {
-        return gameService.endNight(roomId)
+    public ResponseEntity<Room> endNight(@PathVariable UUID roomId, @RequestParam UUID playerId) {
+        return gameService.getRoom(roomId)
+                .filter(r -> playerId.equals(r.getHostId()))
+                .flatMap(r -> gameService.endNight(roomId))
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.badRequest().build());
+                .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 
     /**
@@ -176,6 +178,20 @@ public class GameController {
      * @param request contains the target player ID to vote for
      * @return ResponseEntity containing the updated Room state or error status
      */
+    @PostMapping("/vote/skip")
+    public ResponseEntity<Room> skipVote(@PathVariable UUID roomId, @RequestParam UUID voterId) {
+        return gameService.skipVote(roomId, voterId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.badRequest().build());
+    }
+
+    @PostMapping("/night/mafia-skip")
+    public ResponseEntity<Room> skipMafiaVote(@PathVariable UUID roomId, @RequestParam UUID playerId) {
+        return gameService.skipMafiaVote(roomId, playerId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.badRequest().build());
+    }
+
     @PostMapping("/vote")
     public ResponseEntity<Room> vote(
             @PathVariable UUID roomId,
@@ -199,6 +215,7 @@ public class GameController {
         return gameService.getRoom(roomId)
                 .filter(r -> playerId.equals(r.getHostId()))
                 .filter(r -> r.getPhase() == com.mafia.game.model.GamePhase.VOTING)
+
                 .flatMap(r -> gameService.resolveVoting(roomId))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN).build());
@@ -217,6 +234,21 @@ public class GameController {
         return gameService.getPlayer(roomId, playerId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Records a player's rematch choice on the end screen.
+     * choice=PLAY_AGAIN marks them with a green checkmark; all voting resets the room.
+     * choice=LEAVE marks them with a red X; the client will call leave shortly after.
+     */
+    @PostMapping("/rematch")
+    public ResponseEntity<Room> rematchVote(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId,
+            @RequestParam String choice) {
+        return gameService.rematchVote(roomId, playerId, choice)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.badRequest().build());
     }
 
     /**

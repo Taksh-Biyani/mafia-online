@@ -6,8 +6,13 @@ import com.mafia.game.api.JoinRoomRequest;
 import com.mafia.game.model.Player;
 import com.mafia.game.room.Room;
 import com.mafia.game.service.RoomService;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,14 +32,45 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/rooms")
 public class RoomController {
     private final RoomService roomService;
+    private final Map<String, Deque<Long>> joinAttempts = new ConcurrentHashMap<>();
+    private final Map<String, Long> joinBlockedUntil = new ConcurrentHashMap<>();
 
-    /**
-     * Constructs RoomController with dependency on RoomService.
-     *
-     * @param roomService the service for room management
-     */
+    private static final int JOIN_WINDOW_MS = 5_000;
+    private static final int JOIN_MAX_REQUESTS = 3;
+    private static final int JOIN_BLOCK_MS = 10_000;
+
     public RoomController(RoomService roomService) {
         this.roomService = roomService;
+    }
+
+    /** Returns true if this IP has exceeded the join rate limit. Tracks a sliding 5s window; blocks for 10s at 4+ requests. */
+    private boolean isJoinRateLimited(HttpServletRequest httpReq) {
+        String ip = getClientIp(httpReq);
+        long now = System.currentTimeMillis();
+        Long blockedUntil = joinBlockedUntil.get(ip);
+        if (blockedUntil != null && now < blockedUntil) return true;
+
+        Deque<Long> window = joinAttempts.computeIfAbsent(ip, k -> new ArrayDeque<>());
+        synchronized (window) {
+            window.addLast(now);
+            while (!window.isEmpty() && now - window.peekFirst() > JOIN_WINDOW_MS) {
+                window.pollFirst();
+            }
+            if (window.size() > JOIN_MAX_REQUESTS) {
+                joinBlockedUntil.put(ip, now + JOIN_BLOCK_MS);
+                window.clear();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     /**
@@ -52,7 +88,8 @@ public class RoomController {
                     request.getJoinCode(),
                     request.getMinPlayers(),
                     request.getMaxPlayers(),
-                    request.getDayDurationSeconds());
+                    request.getDayDurationSeconds(),
+                    request.getMafiaCount());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -104,7 +141,10 @@ public class RoomController {
      * @return ResponseEntity containing the created Player or 400 error
      */
     @PostMapping("/{roomId}/join")
-    public ResponseEntity<Player> joinRoom(@PathVariable UUID roomId, @RequestBody JoinRoomRequest request) {
+    public ResponseEntity<Player> joinRoom(@PathVariable UUID roomId, @RequestBody JoinRoomRequest request, HttpServletRequest httpReq) {
+        if (isJoinRateLimited(httpReq)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         return roomService.joinRoom(roomId, request.getPlayerName())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
@@ -119,7 +159,10 @@ public class RoomController {
      * @return ResponseEntity containing the created Player or 400 error
      */
     @PostMapping("/join")
-    public ResponseEntity<Player> joinByCode(@RequestParam String code, @RequestBody JoinRoomRequest request) {
+    public ResponseEntity<Player> joinByCode(@RequestParam String code, @RequestBody JoinRoomRequest request, HttpServletRequest httpReq) {
+        if (isJoinRateLimited(httpReq)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         return roomService.joinRoomByCode(code, request.getPlayerName())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());

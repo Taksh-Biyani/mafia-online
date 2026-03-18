@@ -4,245 +4,271 @@ import com.mafia.game.model.GamePhase;
 import com.mafia.game.model.Player;
 import com.mafia.game.room.Room;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
-/**
- * Service layer for managing game logic and state transitions.
- * Handles game start, night actions, voting, role assignment, and win condition checks.
- */
 @Service
 public class GameService {
     private final RoomService roomService;
 
-    /**
-     * Constructs GameService with dependency on RoomService.
-     *
-     * @param roomService the service for room management
-     */
     public GameService(RoomService roomService) {
         this.roomService = roomService;
     }
 
-    /**
-     * Starts a game in the specified room.
-     * Requires the room to be in LOBBY phase and have at least minPlayers.
-     * Assigns roles to all players and transitions room to NIGHT phase.
-     *
-     * @param roomId the UUID of the room
-     * @return Optional containing the updated room if successful, empty if conditions not met
-     */
+    // ── Game start ──────────────────────────────────────────────────────────
+
+    /** Assigns roles and starts the first DAY phase. */
     public Optional<Room> startGame(UUID roomId) {
         return roomService.getRoom(roomId)
                 .filter(r -> r.getPhase() == GamePhase.LOBBY)
                 .filter(r -> r.getPlayers().size() >= r.getMinPlayers())
                 .map(room -> {
                     assignRoles(room);
-                    room.setPhase(GamePhase.NIGHT);
+                    room.setPhase(GamePhase.DAY);
                     return room;
                 });
     }
 
-    /**
-     * Records the mafia's kill target for the current night.
-     * Does not immediately kill — resolution happens when all night actors have submitted (or night/end is called).
-     *
-     * @param roomId the UUID of the room
-     * @param playerId the UUID of the mafia player performing the action
-     * @param targetPlayerId the UUID of the target player to eliminate
-     * @return Optional containing the updated room if successful, empty if conditions not met
-     */
+    // ── Night sub-phase actions ─────────────────────────────────────────────
+
+    /** Mafia player casts/updates their kill vote. Auto-advances when all mafia have voted. */
     public Optional<Room> submitNightAction(UUID roomId, UUID playerId, UUID targetPlayerId) {
         return roomService.getRoom(roomId)
-                .filter(r -> r.getPhase() == GamePhase.NIGHT)
+                .filter(r -> r.getPhase() == GamePhase.NIGHT_MAFIA)
                 .flatMap(room -> findPlayer(room, playerId)
                         .filter(p -> p.getRole() == Player.Role.MAFIA && p.isAlive())
                         .map(mafia -> {
-                            room.setMafiaTargetId(targetPlayerId);
-                            room.getNightActors().add("MAFIA");
-                            checkAutoEndNight(room);
+                            room.getMafiaVotes().put(playerId, targetPlayerId);
+                            checkAutoAdvance(room);
                             return room;
                         }));
     }
 
-    /**
-     * Records the doctor's protection target for the current night.
-     * If the mafia's target matches the protected player, the kill is blocked.
-     *
-     * @param roomId the UUID of the room
-     * @param playerId the UUID of the doctor player
-     * @param targetPlayerId the UUID of the player to protect
-     * @return Optional containing the updated room if successful, empty if conditions not met
-     */
+    /** Doctor chooses who to protect. Rejects if same target as last night. Auto-advances after acting. */
     public Optional<Room> submitDoctorProtect(UUID roomId, UUID playerId, UUID targetPlayerId) {
         return roomService.getRoom(roomId)
-                .filter(r -> r.getPhase() == GamePhase.NIGHT)
+                .filter(r -> r.getPhase() == GamePhase.NIGHT_DOCTOR)
                 .flatMap(room -> findPlayer(room, playerId)
                         .filter(p -> p.getRole() == Player.Role.DOCTOR && p.isAlive())
-                        .map(doctor -> {
+                        .flatMap(doctor -> {
+                            if (targetPlayerId.equals(room.getLastDoctorProtectedId())) {
+                                return Optional.empty();
+                            }
                             room.setDoctorProtectedId(targetPlayerId);
                             room.getNightActors().add("DOCTOR");
-                            checkAutoEndNight(room);
-                            return room;
+                            checkAutoAdvance(room);
+                            return Optional.of(room);
                         }));
     }
 
-    /**
-     * Handles the detective's investigation of a target player.
-     * Returns the target player so the detective can learn their role.
-     * Auto-ends the night if all night actors have submitted.
-     *
-     * @param roomId the UUID of the room
-     * @param playerId the UUID of the detective player
-     * @param targetPlayerId the UUID of the player to investigate
-     * @return Optional containing the investigated player if successful, empty if conditions not met
-     */
+    /** Detective investigates a player. Auto-advances after acting. Returns investigated player. */
     public Optional<Player> submitDetectiveInvestigate(UUID roomId, UUID playerId, UUID targetPlayerId) {
         return roomService.getRoom(roomId)
-                .filter(r -> r.getPhase() == GamePhase.NIGHT)
+                .filter(r -> r.getPhase() == GamePhase.NIGHT_DETECTIVE)
                 .flatMap(room -> findPlayer(room, playerId)
                         .filter(p -> p.getRole() == Player.Role.DETECTIVE && p.isAlive())
                         .flatMap(detective -> {
                             room.getNightActors().add("DETECTIVE");
-                            checkAutoEndNight(room);
+                            checkAutoAdvance(room);
                             return findPlayer(room, targetPlayerId);
                         }));
     }
 
     /**
-     * Manually ends the night phase, resolving all pending night actions and transitioning to DAY.
-     *
-     * @param roomId the UUID of the room
-     * @return Optional containing the updated room if successful, empty if not in NIGHT phase
+     * Host skip — advances the current night sub-phase without waiting for remaining players.
+     * Works on NIGHT_MAFIA, NIGHT_DOCTOR, NIGHT_DETECTIVE.
      */
     public Optional<Room> endNight(UUID roomId) {
         return roomService.getRoom(roomId)
-                .filter(r -> r.getPhase() == GamePhase.NIGHT)
+                .filter(r -> r.getPhase() == GamePhase.NIGHT_MAFIA
+                          || r.getPhase() == GamePhase.NIGHT_DOCTOR
+                          || r.getPhase() == GamePhase.NIGHT_DETECTIVE)
                 .map(room -> {
-                    resolveNight(room);
+                    switch (room.getPhase()) {
+                        case NIGHT_MAFIA -> advanceFromNightMafia(room);
+                        case NIGHT_DOCTOR -> advanceFromNightDoctor(room);
+                        case NIGHT_DETECTIVE -> resolveNight(room);
+                        default -> { /* unreachable */ }
+                    }
                     return room;
                 });
     }
 
-    private void checkAutoEndNight(Room room) {
-        if (room.getPhase() != GamePhase.NIGHT) return;
-        Set<String> expected = new HashSet<>();
-        expected.add("MAFIA");
-        if (room.getAlivePlayers().stream().anyMatch(p -> p.getRole() == Player.Role.DETECTIVE)) {
-            expected.add("DETECTIVE");
+    // ── Auto-advance logic ───────────────────────────────────────────────────
+
+    private void checkAutoAdvance(Room room) {
+        switch (room.getPhase()) {
+            case NIGHT_MAFIA -> {
+                long aliveMafia = room.getAlivePlayers().stream()
+                        .filter(p -> p.getRole() == Player.Role.MAFIA).count();
+                if (room.getMafiaVotes().size() + room.getMafiaSkips().size() >= aliveMafia) {
+                    advanceFromNightMafia(room);
+                }
+            }
+            case NIGHT_DOCTOR -> {
+                if (room.getNightActors().contains("DOCTOR")) {
+                    advanceFromNightDoctor(room);
+                }
+            }
+            case NIGHT_DETECTIVE -> {
+                if (room.getNightActors().contains("DETECTIVE")) {
+                    resolveNight(room);
+                }
+            }
+            default -> { /* no auto-advance for DAY/VOTING/LOBBY */ }
         }
-        if (room.getAlivePlayers().stream().anyMatch(p -> p.getRole() == Player.Role.DOCTOR)) {
-            expected.add("DOCTOR");
+    }
+
+    private void advanceFromNightMafia(Room room) {
+        boolean doctorAlive = room.getAlivePlayers().stream()
+                .anyMatch(p -> p.getRole() == Player.Role.DOCTOR);
+        if (doctorAlive) {
+            room.setPhase(GamePhase.NIGHT_DOCTOR);
+        } else {
+            advanceFromNightDoctor(room);
         }
-        if (room.getNightActors().containsAll(expected)) {
+    }
+
+    private void advanceFromNightDoctor(Room room) {
+        boolean detectiveAlive = room.getAlivePlayers().stream()
+                .anyMatch(p -> p.getRole() == Player.Role.DETECTIVE);
+        if (detectiveAlive) {
+            room.setPhase(GamePhase.NIGHT_DETECTIVE);
+        } else {
             resolveNight(room);
         }
     }
 
     private void resolveNight(Room room) {
-        UUID targetId = room.getMafiaTargetId();
+        // Tally mafia votes — tie = no kill
+        UUID targetId = null;
+        Map<UUID, Long> tally = room.getMafiaVotes().values().stream()
+                .collect(Collectors.groupingBy(id -> id, Collectors.counting()));
+        if (!tally.isEmpty()) {
+            long maxVotes = tally.values().stream().mapToLong(Long::longValue).max().orElse(0L);
+            List<UUID> topVoted = tally.entrySet().stream()
+                    .filter(e -> e.getValue() == maxVotes)
+                    .map(Map.Entry::getKey)
+                    .toList();
+            if (topVoted.size() == 1) {
+                targetId = topVoted.get(0);
+            }
+            // else: tie → no kill
+        }
         UUID protectedId = room.getDoctorProtectedId();
         if (targetId != null && !targetId.equals(protectedId)) {
-            findPlayer(room, targetId).ifPresent(p -> p.setAlive(false));
+            final UUID finalTargetId = targetId;
+            findPlayer(room, finalTargetId).ifPresent(p -> p.setAlive(false));
         }
-        room.setMafiaTargetId(null);
+        room.setLastDoctorProtectedId(room.getDoctorProtectedId());
+        room.getMafiaVotes().clear();
+        room.getMafiaSkips().clear();
         room.setDoctorProtectedId(null);
         room.getNightActors().clear();
-        room.setPhase(GamePhase.DAY);
+
+        // Check win condition after night kills (mafia may have reached parity)
+        Optional<Player.Role> win = checkWinCondition(room);
+        if (win.isPresent()) {
+            room.setPhase(GamePhase.ENDED);
+            room.setWinner(win.get());
+        } else {
+            room.setPhase(GamePhase.DAY);
+        }
     }
 
-    /**
-     * Transitions the room from DAY to VOTING phase.
-     * Only the host can call this. Clears any leftover votes from previous rounds.
-     *
-     * @param roomId   the UUID of the room
-     * @param playerId the UUID of the player attempting to end the day (must be host)
-     * @return Optional containing the updated room if successful, empty if not host or wrong phase
-     */
+    // ── Day / Voting ────────────────────────────────────────────────────────
+
     public Optional<Room> endDay(UUID roomId, UUID playerId) {
         return roomService.getRoom(roomId)
                 .filter(r -> playerId.equals(r.getHostId()))
                 .filter(r -> r.getPhase() == GamePhase.DAY)
                 .map(room -> {
                     room.getVotes().clear();
+                    room.getVoteSkips().clear();
                     room.setPhase(GamePhase.VOTING);
                     return room;
                 });
     }
 
-    /**
-     * Submits a vote during the VOTING phase.
-     * Stores the vote (one per player; subsequent calls are ignored).
-     * Auto-resolves voting once all alive players have cast their vote.
-     *
-     * @param roomId         the UUID of the room
-     * @param voterId        the UUID of the player voting
-     * @param targetPlayerId the UUID of the player being voted for
-     * @return Optional containing the updated room if successful, empty if not in VOTING phase
-     */
     public Optional<Room> submitVote(UUID roomId, UUID voterId, UUID targetPlayerId) {
         return roomService.getRoom(roomId)
                 .filter(r -> r.getPhase() == GamePhase.VOTING)
                 .flatMap(room -> {
-                    // Ignore double votes
-                    if (room.getVotes().containsKey(voterId)) {
+                    if (room.getVotes().containsKey(voterId) || room.getVoteSkips().contains(voterId)) {
                         return Optional.of(room);
                     }
                     room.getVotes().put(voterId, targetPlayerId);
-                    // Auto-resolve once every alive player has voted
-                    if (room.getVotes().size() >= room.getAlivePlayers().size()) {
+                    if (room.getVotes().size() + room.getVoteSkips().size() >= room.getAlivePlayers().size()) {
                         return resolveVoting(roomId);
                     }
                     return Optional.of(room);
                 });
     }
 
-    /**
-     * Resolves voting by eliminating the player with the most votes.
-     * Reads votes from the room's stored vote map.
-     * Transitions to ENDED if a win condition is met, otherwise back to NIGHT.
-     *
-     * @param roomId the UUID of the room
-     * @return Optional containing the updated room if successful, empty if not in VOTING phase
-     */
+    public Optional<Room> skipVote(UUID roomId, UUID voterId) {
+        return roomService.getRoom(roomId)
+                .filter(r -> r.getPhase() == GamePhase.VOTING)
+                .flatMap(room -> {
+                    if (room.getVotes().containsKey(voterId) || room.getVoteSkips().contains(voterId)) {
+                        return Optional.of(room);
+                    }
+                    room.getVoteSkips().add(voterId);
+                    if (room.getVotes().size() + room.getVoteSkips().size() >= room.getAlivePlayers().size()) {
+                        return resolveVoting(roomId);
+                    }
+                    return Optional.of(room);
+                });
+    }
+
+    public Optional<Room> skipMafiaVote(UUID roomId, UUID playerId) {
+        return roomService.getRoom(roomId)
+                .filter(r -> r.getPhase() == GamePhase.NIGHT_MAFIA)
+                .flatMap(room -> findPlayer(room, playerId)
+                        .filter(p -> p.getRole() == Player.Role.MAFIA && p.isAlive())
+                        .map(mafia -> {
+                            room.getMafiaVotes().remove(playerId);
+                            room.getMafiaSkips().add(playerId);
+                            checkAutoAdvance(room);
+                            return room;
+                        }));
+    }
+
     public Optional<Room> resolveVoting(UUID roomId) {
         return roomService.getRoom(roomId)
                 .filter(r -> r.getPhase() == GamePhase.VOTING)
                 .map(room -> {
                     Map<UUID, Long> tally = room.getVotes().values().stream()
                             .collect(Collectors.groupingBy(id -> id, Collectors.counting()));
-                    Optional<UUID> lynched = tally.entrySet().stream()
-                            .max(Map.Entry.comparingByValue())
-                            .filter(e -> e.getValue() > 0)
-                            .map(Map.Entry::getKey);
-                    lynched.flatMap(id -> findPlayer(room, id)).ifPresent(p -> p.setAlive(false));
+                    if (!tally.isEmpty()) {
+                        long maxVotes = tally.values().stream().mapToLong(Long::longValue).max().orElse(0L);
+                        List<UUID> topVoted = tally.entrySet().stream()
+                                .filter(e -> e.getValue() == maxVotes)
+                                .map(Map.Entry::getKey)
+                                .toList();
+                        if (topVoted.size() == 1) {
+                            findPlayer(room, topVoted.get(0)).ifPresent(p -> p.setAlive(false));
+                        }
+                        // else: tie → no elimination
+                    }
                     room.getVotes().clear();
                     Optional<Player.Role> win = checkWinCondition(room);
                     if (win.isPresent()) {
                         room.setPhase(GamePhase.ENDED);
                         room.setWinner(win.get());
                     } else {
-                        room.setPhase(GamePhase.NIGHT);
+                        room.setPhase(GamePhase.NIGHT_MAFIA);
                         room.getNightActors().clear();
                     }
                     return room;
                 });
     }
 
-    /**
-     * Checks if there is a win condition met in the current game state.
-     * Citizens win if all mafia are eliminated.
-     * Mafia wins if their count equals or exceeds the count of non-mafia players.
-     *
-     * @param room the room to check win condition for
-     * @return Optional containing the winning role if a win condition is met, empty otherwise
-     */
+    // ── Win condition / end screen ──────────────────────────────────────────
+
     public Optional<Player.Role> checkWinCondition(Room room) {
         long mafiaAlive = room.getPlayers().stream()
                 .filter(Player::isAlive)
@@ -257,40 +283,61 @@ public class GameService {
         return Optional.empty();
     }
 
-    /**
-     * Retrieves a room by its ID.
-     *
-     * @param roomId the UUID of the room
-     * @return Optional containing the room if found, empty otherwise
-     */
+    public Optional<Room> rematchVote(UUID roomId, UUID playerId, String choice) {
+        return roomService.getRoom(roomId)
+                .filter(r -> r.getPhase() == GamePhase.ENDED)
+                .map(room -> {
+                    if ("PLAY_AGAIN".equals(choice)) {
+                        room.getLeaveVotes().remove(playerId);
+                        room.getPlayAgainVotes().add(playerId);
+                        boolean allVoted = room.getPlayers().stream()
+                                .map(Player::getId)
+                                .allMatch(id -> room.getPlayAgainVotes().contains(id));
+                        if (allVoted && !room.getPlayers().isEmpty()) {
+                            resetRoom(room);
+                        }
+                    } else if ("LEAVE".equals(choice)) {
+                        room.getPlayAgainVotes().remove(playerId);
+                        room.getLeaveVotes().add(playerId);
+                    }
+                    return room;
+                });
+    }
+
+    private void resetRoom(Room room) {
+        room.setPhase(GamePhase.LOBBY);
+        room.setWinner(null);
+        room.getVotes().clear();
+        room.getVoteSkips().clear();
+        room.getNightActors().clear();
+        room.getMafiaVotes().clear();
+        room.getMafiaSkips().clear();
+        room.setDoctorProtectedId(null);
+        room.setLastDoctorProtectedId(null);
+        room.getPlayAgainVotes().clear();
+        room.getLeaveVotes().clear();
+        room.getPlayers().forEach(p -> {
+            p.setRole(Player.Role.CITIZEN);
+            p.setAlive(true);
+        });
+    }
+
+    // ── Lookups ─────────────────────────────────────────────────────────────
+
     public Optional<Room> getRoom(UUID roomId) {
         return roomService.getRoom(roomId);
     }
 
-    /**
-     * Retrieves a specific player from a room.
-     *
-     * @param roomId the UUID of the room
-     * @param playerId the UUID of the player
-     * @return Optional containing the player if found, empty otherwise
-     */
     public Optional<Player> getPlayer(UUID roomId, UUID playerId) {
         return roomService.getRoom(roomId).flatMap(room -> findPlayer(room, playerId));
     }
 
-    /**
-     * Assigns roles to all players in a room.
-     * Mafia count is calculated as size/4 (minimum 1).
-     * Distribution: first mafiaCount get MAFIA role, then DETECTIVE (if >= 5 players),
-     * then DOCTOR (if >= 6 players), remaining get CITIZEN role.
-     * Players are shuffled before role assignment to ensure randomness.
-     *
-     * @param room the room whose players should be assigned roles
-     */
+    // ── Role assignment ──────────────────────────────────────────────────────
+
     private void assignRoles(Room room) {
         List<Player> players = room.getPlayers();
         Collections.shuffle(players);
-        int mafiaCount = Math.max(1, players.size() / 4);
+        int mafiaCount = Math.max(1, room.getMafiaCount());
         for (int i = 0; i < players.size(); i++) {
             Player p = players.get(i);
             p.setAlive(true);
@@ -306,13 +353,6 @@ public class GameService {
         }
     }
 
-    /**
-     * Finds a player in a room by their ID.
-     *
-     * @param room the room to search in
-     * @param playerId the UUID of the player to find
-     * @return Optional containing the player if found, empty otherwise
-     */
     private Optional<Player> findPlayer(Room room, UUID playerId) {
         return room.getPlayers().stream()
                 .filter(p -> p.getId().equals(playerId))

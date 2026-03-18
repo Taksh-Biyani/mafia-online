@@ -1,6 +1,7 @@
 package com.mafia.game.room;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mafia.game.model.ChatMessage;
 import com.mafia.game.model.GamePhase;
 import com.mafia.game.model.Player;
@@ -51,12 +52,17 @@ public class Room {
     /** Duration of the day discussion phase in seconds (host-configurable, default 30) */
     private int dayDurationSeconds;
 
+    /** Number of mafia players assigned when the game starts (host-configurable, default 1) */
+    private int mafiaCount;
+
     /** Votes cast during the voting phase: voterId -> targetPlayerId */
     @Builder.Default
     private Map<UUID, UUID> votes = new HashMap<>();
 
-    /** ID of the mafia's chosen kill target for the current night (null until mafia acts) */
-    private UUID mafiaTargetId;
+    /** Per-mafia votes for the current night: mafiaPlayerId -> targetPlayerId. @JsonIgnore hides targets from non-mafia. */
+    @JsonIgnore
+    @Builder.Default
+    private Map<UUID, UUID> mafiaVotes = new HashMap<>();
 
     /** ID of the doctor's chosen protection target for the current night (null until doctor acts) */
     private UUID doctorProtectedId;
@@ -67,6 +73,26 @@ public class Room {
 
     /** Winning role when the game ends: CITIZEN means town wins, MAFIA means mafia wins (null while game is ongoing) */
     private Player.Role winner;
+
+    /** Players who clicked "Play Again" on the end screen */
+    @Builder.Default
+    private Set<UUID> playAgainVotes = new HashSet<>();
+
+    /** Players who clicked "Return to Lobby" on the end screen (will leave shortly) */
+    @Builder.Default
+    private Set<UUID> leaveVotes = new HashSet<>();
+
+    /** The player the doctor protected last night; doctor cannot protect the same player two nights in a row */
+    private UUID lastDoctorProtectedId;
+
+    /** Players who chose to skip their vote during the voting phase */
+    @Builder.Default
+    private Set<UUID> voteSkips = new HashSet<>();
+
+    /** Mafia players who chose to skip their kill vote this night (hidden from JSON) */
+    @JsonIgnore
+    @Builder.Default
+    private Set<UUID> mafiaSkips = new HashSet<>();
 
     /** Chat history for this room, capped at 200 messages. Not included in room JSON — fetched separately per-player. */
     @JsonIgnore
@@ -161,5 +187,14 @@ public class Room {
      */
     public int getCurrentPlayerCount() {
         return players.size();
+    }
+
+    /**
+     * Returns how many mafia players have submitted a night vote this round.
+     * Safe to expose in JSON — reveals count only, never the targets.
+     */
+    @JsonProperty("mafiaVoteCount")
+    public int getMafiaVoteCount() {
+        return mafiaVotes.size() + mafiaSkips.size();
     }
 }

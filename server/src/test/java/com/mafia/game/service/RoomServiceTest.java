@@ -31,7 +31,7 @@ class RoomServiceTest {
         roomManager.getAllRooms().keySet().forEach(roomManager::removeRoom);
 
         // Create a test room
-        testRoom = roomManager.createRoom("SERVICETEST", 3, 6, 30);
+        testRoom = roomManager.createRoom("SERVICETEST", 3, 6, 30, 1);
     }
 
     @Test
@@ -42,7 +42,7 @@ class RoomServiceTest {
         int maxPlayers = 8;
 
         // When
-        Room createdRoom = roomService.createRoom(joinCode, minPlayers, maxPlayers, 30);
+        Room createdRoom = roomService.createRoom(joinCode, minPlayers, maxPlayers, 30, 1);
 
         // Then
         assertNotNull(createdRoom);
@@ -99,7 +99,7 @@ class RoomServiceTest {
     @Test
     void testListRooms_NotInLobby() {
         // Given - change room to NIGHT phase
-        testRoom.setPhase(GamePhase.NIGHT);
+        testRoom.setPhase(GamePhase.NIGHT_MAFIA);
 
         // When
         List<Room> lobbyRooms = roomService.listRooms();
@@ -176,7 +176,7 @@ class RoomServiceTest {
     @Test
     void testJoinRoom_NotInLobby() {
         // Given - change room to NIGHT phase
-        testRoom.setPhase(GamePhase.NIGHT);
+        testRoom.setPhase(GamePhase.NIGHT_MAFIA);
 
         // When
         Optional<Player> joinedPlayer = roomService.joinRoom(testRoom.getId(), "TestPlayer");

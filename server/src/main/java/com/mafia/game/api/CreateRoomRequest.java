@@ -22,4 +22,7 @@ public class CreateRoomRequest {
 
     /** Duration of the day discussion phase in seconds. Defaults to 30. */
     private int dayDurationSeconds = 30;
+
+    /** Number of mafia players in the game. Defaults to 1. Max 2 if ≥6 players, max 3 if ≥8 players. */
+    private int mafiaCount = 1;
 }

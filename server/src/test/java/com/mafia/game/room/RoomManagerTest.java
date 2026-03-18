@@ -31,7 +31,7 @@ class RoomManagerTest {
         int maxPlayers = 8;
 
         // When
-        Room room = roomManager.createRoom(customJoinCode, minPlayers, maxPlayers, 30);
+        Room room = roomManager.createRoom(customJoinCode, minPlayers, maxPlayers, 30, 1);
 
         // Then
         assertNotNull(room);
@@ -51,7 +51,7 @@ class RoomManagerTest {
         int maxPlayers = 6;
 
         // When
-        Room room = roomManager.createRoom(null, minPlayers, maxPlayers, 30);
+        Room room = roomManager.createRoom(null, minPlayers, maxPlayers, 30, 1);
 
         // Then
         assertNotNull(room);
@@ -72,7 +72,7 @@ class RoomManagerTest {
         int maxPlayers = 10;
 
         // When
-        Room room = roomManager.createRoom(blankJoinCode, minPlayers, maxPlayers, 30);
+        Room room = roomManager.createRoom(blankJoinCode, minPlayers, maxPlayers, 30, 1);
 
         // Then
         assertNotNull(room);
@@ -84,7 +84,7 @@ class RoomManagerTest {
     @Test
     void testGetRoom_ById() {
         // Given
-        Room createdRoom = roomManager.createRoom("GETTEST", 4, 8, 30);
+        Room createdRoom = roomManager.createRoom("GETTEST", 4, 8, 30, 1);
         UUID roomId = createdRoom.getId();
 
         // When
@@ -112,7 +112,7 @@ class RoomManagerTest {
     void testGetRoomByJoinCode() {
         // Given
         String joinCode = "JOINTEST";
-        Room createdRoom = roomManager.createRoom(joinCode, 3, 7, 30);
+        Room createdRoom = roomManager.createRoom(joinCode, 3, 7, 30, 1);
 
         // When
         Optional<Room> retrievedRoom = roomManager.getRoomByJoinCode(joinCode);
@@ -127,7 +127,7 @@ class RoomManagerTest {
     void testGetRoomByJoinCode_CaseInsensitive() {
         // Given
         String joinCode = "CASETEST";
-        Room createdRoom = roomManager.createRoom(joinCode, 4, 8, 30);
+        Room createdRoom = roomManager.createRoom(joinCode, 4, 8, 30, 1);
 
         // When
         Optional<Room> retrievedRoom = roomManager.getRoomByJoinCode("casetest");
@@ -161,7 +161,7 @@ class RoomManagerTest {
     @Test
     void testRemoveRoom() {
         // Given
-        Room createdRoom = roomManager.createRoom("REMOVEME", 4, 8, 30);
+        Room createdRoom = roomManager.createRoom("REMOVEME", 4, 8, 30, 1);
         UUID roomId = createdRoom.getId();
         String joinCode = createdRoom.getJoinCode();
 
@@ -193,9 +193,9 @@ class RoomManagerTest {
     @Test
     void testGetAllRooms() {
         // Given
-        Room room1 = roomManager.createRoom("ALLTEST1", 3, 6, 30);
-        Room room2 = roomManager.createRoom("ALLTEST2", 4, 8, 30);
-        Room room3 = roomManager.createRoom("ALLTEST3", 5, 10, 30);
+        Room room1 = roomManager.createRoom("ALLTEST1", 3, 6, 30, 1);
+        Room room2 = roomManager.createRoom("ALLTEST2", 4, 8, 30, 1);
+        Room room3 = roomManager.createRoom("ALLTEST3", 5, 10, 30, 1);
 
         // When
         var allRooms = roomManager.getAllRooms();
@@ -223,8 +223,8 @@ class RoomManagerTest {
     @Test
     void testRoomIsolation() {
         // Given
-        Room room1 = roomManager.createRoom("ISOLATE1", 3, 6, 30);
-        Room room2 = roomManager.createRoom("ISOLATE2", 4, 8, 30);
+        Room room1 = roomManager.createRoom("ISOLATE1", 3, 6, 30, 1);
+        Room room2 = roomManager.createRoom("ISOLATE2", 4, 8, 30, 1);
 
         // When & Then
         assertNotEquals(room1.getId(), room2.getId());
@@ -237,10 +237,10 @@ class RoomManagerTest {
     void testJoinCodeUniqueness() {
         // Given
         String joinCode = "UNIQUE";
-        Room room1 = roomManager.createRoom(joinCode, 3, 6, 30);
+        Room room1 = roomManager.createRoom(joinCode, 3, 6, 30, 1);
 
         // When creating another room with same join code
-        Room room2 = roomManager.createRoom(joinCode, 4, 8, 30);
+        Room room2 = roomManager.createRoom(joinCode, 4, 8, 30, 1);
 
         // Then - should allow duplicate join codes (rooms can have same code)
         assertNotNull(room2);
@@ -256,9 +256,9 @@ class RoomManagerTest {
     @Test
     void testCleanup_OnShutdown() {
         // Given - create some rooms
-        Room room1 = roomManager.createRoom("CLEANUP1", 3, 6, 30);
-        Room room2 = roomManager.createRoom("CLEANUP2", 4, 8, 30);
-        Room room3 = roomManager.createRoom("CLEANUP3", 5, 10, 30);
+        Room room1 = roomManager.createRoom("CLEANUP1", 3, 6, 30, 1);
+        Room room2 = roomManager.createRoom("CLEANUP2", 4, 8, 30, 1);
+        Room room3 = roomManager.createRoom("CLEANUP3", 5, 10, 30, 1);
 
         // Verify rooms exist
         assertEquals(3, roomManager.getAllRooms().size());

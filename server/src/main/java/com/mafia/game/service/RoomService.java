@@ -40,8 +40,8 @@ public class RoomService {
      * @param maxPlayers maximum players allowed in the room
      * @return the newly created Room
      */
-    public Room createRoom(String joinCode, int minPlayers, int maxPlayers, int dayDurationSeconds) {
-        return roomManager.createRoom(joinCode, minPlayers, maxPlayers, dayDurationSeconds);
+    public Room createRoom(String joinCode, int minPlayers, int maxPlayers, int dayDurationSeconds, int mafiaCount) {
+        return roomManager.createRoom(joinCode, minPlayers, maxPlayers, dayDurationSeconds, mafiaCount);
     }
 
     /**
@@ -93,6 +93,11 @@ public class RoomService {
                 .filter(r -> r.getPhase() == GamePhase.LOBBY)
                 .filter(r -> r.getPlayers().size() < r.getMaxPlayers())
                 .map(room -> {
+                    boolean nameTaken = room.getPlayers().stream()
+                            .anyMatch(p -> p.getName().equalsIgnoreCase(name));
+                    if (nameTaken) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken in this room");
+                    }
                     Player player = Player.builder()
                             .id(UUID.randomUUID())
                             .name(name)
@@ -170,12 +175,15 @@ public class RoomService {
         Player player = room.findPlayer(playerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
+        boolean isNightPhase = room.getPhase() == GamePhase.NIGHT_MAFIA
+                || room.getPhase() == GamePhase.NIGHT_DOCTOR
+                || room.getPhase() == GamePhase.NIGHT_DETECTIVE;
         ChatMessage.Channel channel;
         if (!player.isAlive()) {
             channel = ChatMessage.Channel.DEAD;
-        } else if (player.getRole() == Player.Role.MAFIA && room.getPhase() == GamePhase.NIGHT) {
+        } else if (player.getRole() == Player.Role.MAFIA && room.getPhase() == GamePhase.NIGHT_MAFIA) {
             channel = ChatMessage.Channel.MAFIA_NIGHT;
-        } else if (room.getPhase() == GamePhase.NIGHT) {
+        } else if (isNightPhase) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can't chat right now");
         } else {
             channel = ChatMessage.Channel.GENERAL;
@@ -210,6 +218,6 @@ public class RoomService {
         if (channel == ChatMessage.Channel.MAFIA_NIGHT) {
             return player.getRole() == Player.Role.MAFIA;
         }
-        return false;
+        return false; // DEAD channel invisible to alive players
     }
 }

@@ -30,7 +30,7 @@ public class RoomManager {
      * @param maxPlayers maximum players allowed in the room
      * @return the newly created Room
      */
-    public Room createRoom(String joinCode, int minPlayers, int maxPlayers, int dayDurationSeconds) {
+    public Room createRoom(String joinCode, int minPlayers, int maxPlayers, int dayDurationSeconds, int mafiaCount) {
         String code;
         if (joinCode != null && !joinCode.isBlank()) {
             String trimmed = joinCode.trim();
@@ -49,6 +49,7 @@ public class RoomManager {
                 .minPlayers(minPlayers)
                 .maxPlayers(maxPlayers)
                 .dayDurationSeconds(dayDurationSeconds > 0 ? dayDurationSeconds : 30)
+                .mafiaCount(mafiaCount > 0 ? mafiaCount : 1)
                 .build();
         roomsById.put(room.getId(), room);
         roomsByJoinCode.put(room.getJoinCode().toUpperCase(), room);
