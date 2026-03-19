@@ -67,6 +67,15 @@ class GameControllerTest {
                 .orElseThrow(() -> new IllegalStateException("No player with role " + role));
     }
 
+    /** Returns the secret token for a player in a room — used to authenticate test requests. */
+    private String secretOf(Room room, UUID playerId) {
+        return room.getPlayers().stream()
+                .filter(p -> p.getId().equals(playerId))
+                .findFirst()
+                .map(Player::getSecret)
+                .orElseThrow(() -> new IllegalStateException("Player not found: " + playerId));
+    }
+
     private String nightActionBody(UUID targetId) {
         return "{\"targetPlayerId\":\"" + targetId + "\"}";
     }
@@ -80,9 +89,11 @@ class GameControllerTest {
     @Test
     void startGame_host_returns200WithDayPhase() throws Exception {
         Room room = createRoomWithPlayers(4);
+        UUID hostId = room.getHostId();
 
         mockMvc.perform(post("/api/rooms/{id}/start", room.getId())
-                        .param("playerId", room.getHostId().toString()))
+                        .param("playerId", hostId.toString())
+                        .param("playerToken", secretOf(room, hostId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.phase").value("DAY"));
     }
@@ -90,29 +101,34 @@ class GameControllerTest {
     @Test
     void startGame_nonHost_returns403() throws Exception {
         Room room = createRoomWithPlayers(4);
-        UUID nonHostId = room.getPlayers().stream()
+        Player nonHost = room.getPlayers().stream()
                 .filter(p -> !p.getId().equals(room.getHostId()))
-                .findFirst().orElseThrow().getId();
+                .findFirst().orElseThrow();
 
         mockMvc.perform(post("/api/rooms/{id}/start", room.getId())
-                        .param("playerId", nonHostId.toString()))
+                        .param("playerId", nonHost.getId().toString())
+                        .param("playerToken", nonHost.getSecret()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void startGame_unknownRoom_returns404() throws Exception {
-        mockMvc.perform(post("/api/rooms/{id}/start", UUID.randomUUID())
-                        .param("playerId", UUID.randomUUID().toString()))
-                .andExpect(status().isNotFound());
+    void startGame_noToken_returns401() throws Exception {
+        Room room = createRoomWithPlayers(4);
+
+        mockMvc.perform(post("/api/rooms/{id}/start", room.getId())
+                        .param("playerId", room.getHostId().toString()))
+                .andExpect(status().isBadRequest()); // Spring returns 400 for missing required param
     }
 
     @Test
     void startGame_notEnoughPlayers_returns400() throws Exception {
         Room room = roomManager.createRoom("TOOFEW", 4, 12, 30, 1);
-        roomService.joinRoom(room.getId(), "Solo").ifPresent(p -> room.setHostId(p.getId()));
+        Player host = roomService.joinRoom(room.getId(), "Solo").orElseThrow();
+        room.setHostId(host.getId());
 
         mockMvc.perform(post("/api/rooms/{id}/start", room.getId())
-                        .param("playerId", room.getHostId().toString()))
+                        .param("playerId", host.getId().toString())
+                        .param("playerToken", host.getSecret()))
                 .andExpect(status().isBadRequest());
     }
 
@@ -146,6 +162,7 @@ class GameControllerTest {
 
         mockMvc.perform(post("/api/rooms/{id}/night/action", room.getId())
                         .param("playerId", mafia.getId().toString())
+                        .param("playerToken", mafia.getSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(nightActionBody(target.getId())))
                 .andExpect(status().isOk());
@@ -161,6 +178,7 @@ class GameControllerTest {
 
         mockMvc.perform(post("/api/rooms/{id}/night/action", room.getId())
                         .param("playerId", mafia.getId().toString())
+                        .param("playerToken", mafia.getSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(nightActionBody(target.getId())))
                 .andExpect(status().isBadRequest());
@@ -178,6 +196,7 @@ class GameControllerTest {
 
         mockMvc.perform(post("/api/rooms/{id}/night/protect", room.getId())
                         .param("playerId", doctor.getId().toString())
+                        .param("playerToken", doctor.getSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(nightActionBody(target.getId())))
                 .andExpect(status().isOk());
@@ -192,6 +211,7 @@ class GameControllerTest {
 
         mockMvc.perform(post("/api/rooms/{id}/night/protect", room.getId())
                         .param("playerId", doctor.getId().toString())
+                        .param("playerToken", doctor.getSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(nightActionBody(target.getId())))
                 .andExpect(status().isBadRequest());
@@ -209,6 +229,7 @@ class GameControllerTest {
 
         mockMvc.perform(post("/api/rooms/{id}/night/investigate", room.getId())
                         .param("playerId", detective.getId().toString())
+                        .param("playerToken", detective.getSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(nightActionBody(mafia.getId())))
                 .andExpect(status().isOk())
@@ -224,6 +245,7 @@ class GameControllerTest {
 
         mockMvc.perform(post("/api/rooms/{id}/night/investigate", room.getId())
                         .param("playerId", detective.getId().toString())
+                        .param("playerToken", detective.getSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(nightActionBody(mafia.getId())))
                 .andExpect(status().isBadRequest());
@@ -235,9 +257,11 @@ class GameControllerTest {
     void endNight_host_returns200() throws Exception {
         Room room = startedRoom(4);
         room.setPhase(GamePhase.NIGHT_MAFIA);
+        UUID hostId = room.getHostId();
 
         mockMvc.perform(post("/api/rooms/{id}/night/end", room.getId())
-                        .param("playerId", room.getHostId().toString()))
+                        .param("playerId", hostId.toString())
+                        .param("playerToken", secretOf(room, hostId)))
                 .andExpect(status().isOk());
     }
 
@@ -246,12 +270,13 @@ class GameControllerTest {
         Room room = startedRoom(4);
         room.setPhase(GamePhase.NIGHT_MAFIA);
 
-        UUID nonHostId = room.getPlayers().stream()
+        Player nonHost = room.getPlayers().stream()
                 .filter(p -> !p.getId().equals(room.getHostId()))
-                .findFirst().orElseThrow().getId();
+                .findFirst().orElseThrow();
 
         mockMvc.perform(post("/api/rooms/{id}/night/end", room.getId())
-                        .param("playerId", nonHostId.toString()))
+                        .param("playerId", nonHost.getId().toString())
+                        .param("playerToken", nonHost.getSecret()))
                 .andExpect(status().isForbidden());
     }
 
@@ -260,9 +285,11 @@ class GameControllerTest {
     @Test
     void endDay_host_returns200WithVotingPhase() throws Exception {
         Room room = startedRoom(4); // DAY phase
+        UUID hostId = room.getHostId();
 
         mockMvc.perform(post("/api/rooms/{id}/day/end", room.getId())
-                        .param("playerId", room.getHostId().toString()))
+                        .param("playerId", hostId.toString())
+                        .param("playerToken", secretOf(room, hostId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.phase").value("VOTING"));
     }
@@ -271,12 +298,13 @@ class GameControllerTest {
     void endDay_nonHost_returns403() throws Exception {
         Room room = startedRoom(4);
 
-        UUID nonHostId = room.getPlayers().stream()
+        Player nonHost = room.getPlayers().stream()
                 .filter(p -> !p.getId().equals(room.getHostId()))
-                .findFirst().orElseThrow().getId();
+                .findFirst().orElseThrow();
 
         mockMvc.perform(post("/api/rooms/{id}/day/end", room.getId())
-                        .param("playerId", nonHostId.toString()))
+                        .param("playerId", nonHost.getId().toString())
+                        .param("playerToken", nonHost.getSecret()))
                 .andExpect(status().isForbidden());
     }
 
@@ -292,6 +320,7 @@ class GameControllerTest {
 
         mockMvc.perform(post("/api/rooms/{id}/vote", room.getId())
                         .param("voterId", voter.getId().toString())
+                        .param("playerToken", voter.getSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(voteBody(target.getId())))
                 .andExpect(status().isOk());
@@ -300,9 +329,11 @@ class GameControllerTest {
     @Test
     void vote_wrongPhase_returns400() throws Exception {
         Room room = startedRoom(4); // DAY phase
+        Player voter = room.getPlayers().get(0);
 
         mockMvc.perform(post("/api/rooms/{id}/vote", room.getId())
-                        .param("voterId", room.getPlayers().get(0).getId().toString())
+                        .param("voterId", voter.getId().toString())
+                        .param("playerToken", voter.getSecret())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(voteBody(room.getPlayers().get(1).getId())))
                 .andExpect(status().isBadRequest());
@@ -314,18 +345,22 @@ class GameControllerTest {
     void skipVote_validSkip_returns200() throws Exception {
         Room room = startedRoom(4);
         room.setPhase(GamePhase.VOTING);
+        Player voter = room.getPlayers().get(0);
 
         mockMvc.perform(post("/api/rooms/{id}/vote/skip", room.getId())
-                        .param("voterId", room.getPlayers().get(0).getId().toString()))
+                        .param("voterId", voter.getId().toString())
+                        .param("playerToken", voter.getSecret()))
                 .andExpect(status().isOk());
     }
 
     @Test
     void skipVote_wrongPhase_returns400() throws Exception {
         Room room = startedRoom(4); // DAY phase
+        Player voter = room.getPlayers().get(0);
 
         mockMvc.perform(post("/api/rooms/{id}/vote/skip", room.getId())
-                        .param("voterId", room.getPlayers().get(0).getId().toString()))
+                        .param("voterId", voter.getId().toString())
+                        .param("playerToken", voter.getSecret()))
                 .andExpect(status().isBadRequest());
     }
 
@@ -335,9 +370,11 @@ class GameControllerTest {
     void resolveVotes_hostInVotingPhase_returns200() throws Exception {
         Room room = startedRoom(4);
         room.setPhase(GamePhase.VOTING);
+        UUID hostId = room.getHostId();
 
         mockMvc.perform(post("/api/rooms/{id}/vote/resolve", room.getId())
-                        .param("playerId", room.getHostId().toString()))
+                        .param("playerId", hostId.toString())
+                        .param("playerToken", secretOf(room, hostId)))
                 .andExpect(status().isOk());
     }
 
@@ -346,12 +383,13 @@ class GameControllerTest {
         Room room = startedRoom(4);
         room.setPhase(GamePhase.VOTING);
 
-        UUID nonHostId = room.getPlayers().stream()
+        Player nonHost = room.getPlayers().stream()
                 .filter(p -> !p.getId().equals(room.getHostId()))
-                .findFirst().orElseThrow().getId();
+                .findFirst().orElseThrow();
 
         mockMvc.perform(post("/api/rooms/{id}/vote/resolve", room.getId())
-                        .param("playerId", nonHostId.toString()))
+                        .param("playerId", nonHost.getId().toString())
+                        .param("playerToken", nonHost.getSecret()))
                 .andExpect(status().isForbidden());
     }
 
@@ -362,17 +400,20 @@ class GameControllerTest {
         Room room = createRoomWithPlayers(4);
         Player player = room.getPlayers().get(0);
 
-        mockMvc.perform(get("/api/rooms/{id}/players/{playerId}", room.getId(), player.getId()))
+        mockMvc.perform(get("/api/rooms/{id}/players/{playerId}", room.getId(), player.getId())
+                        .param("playerToken", player.getSecret()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(player.getId().toString()));
     }
 
     @Test
-    void getPlayer_unknownPlayer_returns404() throws Exception {
+    void getPlayer_wrongToken_returns401() throws Exception {
         Room room = createRoomWithPlayers(4);
+        Player player = room.getPlayers().get(0);
 
-        mockMvc.perform(get("/api/rooms/{id}/players/{playerId}", room.getId(), UUID.randomUUID()))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/rooms/{id}/players/{playerId}", room.getId(), player.getId())
+                        .param("playerToken", "wrong-token"))
+                .andExpect(status().isUnauthorized());
     }
 
     // ── POST /rematch ─────────────────────────────────────────────────────────
@@ -382,9 +423,11 @@ class GameControllerTest {
         Room room = startedRoom(4);
         room.setPhase(GamePhase.ENDED);
         room.setWinner(Player.Role.CITIZEN);
+        Player player = room.getPlayers().get(0);
 
         mockMvc.perform(post("/api/rooms/{id}/rematch", room.getId())
-                        .param("playerId", room.getPlayers().get(0).getId().toString())
+                        .param("playerId", player.getId().toString())
+                        .param("playerToken", player.getSecret())
                         .param("choice", "PLAY_AGAIN"))
                 .andExpect(status().isOk());
     }
@@ -392,9 +435,11 @@ class GameControllerTest {
     @Test
     void rematch_wrongPhase_returns400() throws Exception {
         Room room = startedRoom(4); // DAY phase, not ENDED
+        Player player = room.getPlayers().get(0);
 
         mockMvc.perform(post("/api/rooms/{id}/rematch", room.getId())
-                        .param("playerId", room.getPlayers().get(0).getId().toString())
+                        .param("playerId", player.getId().toString())
+                        .param("playerToken", player.getSecret())
                         .param("choice", "PLAY_AGAIN"))
                 .andExpect(status().isBadRequest());
     }

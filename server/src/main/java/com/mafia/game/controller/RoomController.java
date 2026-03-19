@@ -3,6 +3,7 @@ package com.mafia.game.controller;
 import com.mafia.game.api.CreateRoomRequest;
 import com.mafia.game.api.CreateRoomResponse;
 import com.mafia.game.api.JoinRoomRequest;
+import com.mafia.game.api.JoinRoomResponse;
 import com.mafia.game.model.Player;
 import com.mafia.game.room.Room;
 import com.mafia.game.service.CaptchaService;
@@ -17,7 +18,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -71,23 +71,20 @@ public class RoomController {
         return false;
     }
 
+    /** Always uses the direct TCP connection address — never trusts X-Forwarded-For to prevent rate limit spoofing. */
     private String getClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
         return request.getRemoteAddr();
     }
 
     /**
      * Creates a new game room with specified configuration and automatically joins the creator.
-     * Returns 201 Created with the new room details and creator player information.
-     *
-     * @param request contains join code (optional), player name, minPlayers, and maxPlayers
-     * @return ResponseEntity containing the CreateRoomResponse with 201 status
+     * Returns 201 Created with the new room details, creator player, and the creator's bearer token.
      */
     @PostMapping
     public ResponseEntity<?> createRoom(@RequestBody CreateRoomRequest request, HttpServletRequest httpReq) {
+        if (isJoinRateLimited(httpReq)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         if (!captchaService.verify(request.getCaptchaToken(), getClientIp(httpReq))) {
             return ResponseEntity.badRequest().body("Invalid captcha");
         }
@@ -108,8 +105,9 @@ public class RoomController {
         return roomService.joinRoom(room.getId(), request.getPlayerName())
                 .map(creator -> {
                     room.setHostId(creator.getId());
+                    String token = creator.getSecret();
                     return ResponseEntity.status(HttpStatus.CREATED)
-                            .body((Object) new CreateRoomResponse(room, creator));
+                            .body((Object) new CreateRoomResponse(room, creator, token));
                 })
                 .orElseGet(() -> {
                     roomService.removeRoom(room.getId());
@@ -119,9 +117,6 @@ public class RoomController {
 
     /**
      * Lists all rooms currently in LOBBY phase (open for joining).
-     * Returns 200 OK with list of available rooms.
-     *
-     * @return list of rooms in LOBBY phase
      */
     @GetMapping
     public List<Room> listRooms() {
@@ -130,10 +125,6 @@ public class RoomController {
 
     /**
      * Retrieves a specific room by its ID.
-     * Returns 200 OK with room details or 404 Not Found if room doesn't exist.
-     *
-     * @param roomId the UUID of the room to retrieve
-     * @return ResponseEntity containing the Room or 404 error
      */
     @GetMapping("/{roomId}")
     public ResponseEntity<Room> getRoom(@PathVariable UUID roomId) {
@@ -143,12 +134,7 @@ public class RoomController {
     }
 
     /**
-     * Adds a player to a room by room ID.
-     * Returns 200 OK with the created player or 400 Bad Request if room is full or not in LOBBY.
-     *
-     * @param roomId the UUID of the room to join
-     * @param request contains the player name
-     * @return ResponseEntity containing the created Player or 400 error
+     * Adds a player to a room by room ID. Returns 200 OK with the player and their bearer token.
      */
     @PostMapping("/{roomId}/join")
     public ResponseEntity<?> joinRoom(@PathVariable UUID roomId, @RequestBody JoinRoomRequest request, HttpServletRequest httpReq) {
@@ -159,17 +145,15 @@ public class RoomController {
             return ResponseEntity.badRequest().body("Invalid captcha");
         }
         return roomService.joinRoom(roomId, request.getPlayerName())
-                .map(p -> { wsHandler.broadcast(roomId); return ResponseEntity.ok(p); })
+                .map(p -> {
+                    wsHandler.broadcast(roomId);
+                    return ResponseEntity.ok((Object) new JoinRoomResponse(p, p.getSecret()));
+                })
                 .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
     }
 
     /**
-     * Adds a player to a room using the room's join code.
-     * Returns 200 OK with the created player or 400 Bad Request if room not found or full.
-     *
-     * @param code the join code of the room (query parameter)
-     * @param request contains the player name
-     * @return ResponseEntity containing the created Player or 400 error
+     * Adds a player to a room using the room's join code. Returns 200 OK with the player and their bearer token.
      */
     @PostMapping("/join")
     public ResponseEntity<?> joinByCode(@RequestParam String code, @RequestBody JoinRoomRequest request, HttpServletRequest httpReq) {
@@ -180,35 +164,26 @@ public class RoomController {
             return ResponseEntity.badRequest().body("Invalid captcha");
         }
         return roomService.joinRoomByCode(code, request.getPlayerName())
-                .map(p -> { wsHandler.broadcast(p.getRoomId()); return ResponseEntity.ok(p); })
+                .map(p -> {
+                    wsHandler.broadcast(p.getRoomId());
+                    return ResponseEntity.ok((Object) new JoinRoomResponse(p, p.getSecret()));
+                })
                 .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
     }
 
     /**
-     * Removes a player from a room.
-     * Returns 200 OK on success or 404 Not Found if player or room doesn't exist.
-     *
-     * @param roomId the UUID of the room
-     * @param playerId the UUID of the player to remove (query parameter)
-     * @return ResponseEntity with 200 OK or 404 error
+     * Removes a player from a room. Requires the player's bearer token to prove ownership.
      */
     @PostMapping("/{roomId}/leave")
-    public ResponseEntity<Void> leaveRoom(@PathVariable UUID roomId, @RequestParam UUID playerId) {
+    public ResponseEntity<Void> leaveRoom(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId,
+            @RequestParam String playerToken) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         boolean left = roomService.leaveRoom(roomId, playerId);
         if (left) wsHandler.broadcast(roomId);
         return left ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
-    }
-
-    /**
-     * Completely deletes a room and all its players.
-     * Returns 204 No Content on successful deletion.
-     *
-     * @param roomId the UUID of the room to delete
-     * @return ResponseEntity with 204 No Content status
-     */
-    @DeleteMapping("/{roomId}")
-    public ResponseEntity<Void> deleteRoom(@PathVariable UUID roomId) {
-        roomService.removeRoom(roomId);
-        return ResponseEntity.noContent().build();
     }
 }

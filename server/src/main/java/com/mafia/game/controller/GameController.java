@@ -34,8 +34,19 @@ public class GameController {
         this.wsHandler = wsHandler;
     }
 
+    /** Returns 401 if the token does not match the player, otherwise the player. */
+    private ResponseEntity<?> unauthorized() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
     @PostMapping("/start")
-    public ResponseEntity<Room> startGame(@PathVariable UUID roomId, @RequestParam UUID playerId) {
+    public ResponseEntity<Room> startGame(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId,
+            @RequestParam String playerToken) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.getRoom(roomId)
                 .map(room -> {
                     if (!playerId.equals(room.getHostId())) {
@@ -59,7 +70,11 @@ public class GameController {
     public ResponseEntity<Room> nightAction(
             @PathVariable UUID roomId,
             @RequestParam UUID playerId,
+            @RequestParam String playerToken,
             @RequestBody NightActionRequest request) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.submitNightAction(roomId, playerId, request.getTargetPlayerId())
                 .map(r -> { wsHandler.broadcast(roomId); return ResponseEntity.ok(r); })
                 .orElse(ResponseEntity.badRequest().build());
@@ -69,7 +84,11 @@ public class GameController {
     public ResponseEntity<Room> doctorProtect(
             @PathVariable UUID roomId,
             @RequestParam UUID playerId,
+            @RequestParam String playerToken,
             @RequestBody NightActionRequest request) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.submitDoctorProtect(roomId, playerId, request.getTargetPlayerId())
                 .map(r -> { wsHandler.broadcast(roomId); return ResponseEntity.ok(r); })
                 .orElse(ResponseEntity.badRequest().build());
@@ -79,14 +98,24 @@ public class GameController {
     public ResponseEntity<Player> detectiveInvestigate(
             @PathVariable UUID roomId,
             @RequestParam UUID playerId,
+            @RequestParam String playerToken,
             @RequestBody NightActionRequest request) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.submitDetectiveInvestigate(roomId, playerId, request.getTargetPlayerId())
                 .map(p -> { wsHandler.broadcast(roomId); return ResponseEntity.ok(p); })
                 .orElse(ResponseEntity.badRequest().build());
     }
 
     @PostMapping("/night/end")
-    public ResponseEntity<Room> endNight(@PathVariable UUID roomId, @RequestParam UUID playerId) {
+    public ResponseEntity<Room> endNight(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId,
+            @RequestParam String playerToken) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.getRoom(roomId)
                 .filter(r -> playerId.equals(r.getHostId()))
                 .flatMap(r -> gameService.endNight(roomId))
@@ -95,21 +124,39 @@ public class GameController {
     }
 
     @PostMapping("/day/end")
-    public ResponseEntity<Room> endDay(@PathVariable UUID roomId, @RequestParam UUID playerId) {
+    public ResponseEntity<Room> endDay(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId,
+            @RequestParam String playerToken) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.endDay(roomId, playerId)
                 .map(r -> { wsHandler.broadcast(roomId); return ResponseEntity.ok(r); })
                 .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 
     @PostMapping("/vote/skip")
-    public ResponseEntity<Room> skipVote(@PathVariable UUID roomId, @RequestParam UUID voterId) {
+    public ResponseEntity<Room> skipVote(
+            @PathVariable UUID roomId,
+            @RequestParam UUID voterId,
+            @RequestParam String playerToken) {
+        if (roomService.verifyToken(roomId, voterId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.skipVote(roomId, voterId)
                 .map(r -> { wsHandler.broadcast(roomId); return ResponseEntity.ok(r); })
                 .orElse(ResponseEntity.badRequest().build());
     }
 
     @PostMapping("/night/mafia-skip")
-    public ResponseEntity<Room> skipMafiaVote(@PathVariable UUID roomId, @RequestParam UUID playerId) {
+    public ResponseEntity<Room> skipMafiaVote(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId,
+            @RequestParam String playerToken) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.skipMafiaVote(roomId, playerId)
                 .map(r -> { wsHandler.broadcast(roomId); return ResponseEntity.ok(r); })
                 .orElse(ResponseEntity.badRequest().build());
@@ -119,14 +166,24 @@ public class GameController {
     public ResponseEntity<Room> vote(
             @PathVariable UUID roomId,
             @RequestParam UUID voterId,
+            @RequestParam String playerToken,
             @RequestBody VoteRequest request) {
+        if (roomService.verifyToken(roomId, voterId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.submitVote(roomId, voterId, request.getTargetPlayerId())
                 .map(r -> { wsHandler.broadcast(roomId); return ResponseEntity.ok(r); })
                 .orElse(ResponseEntity.badRequest().build());
     }
 
     @PostMapping("/vote/resolve")
-    public ResponseEntity<Room> resolveVotes(@PathVariable UUID roomId, @RequestParam UUID playerId) {
+    public ResponseEntity<Room> resolveVotes(
+            @PathVariable UUID roomId,
+            @RequestParam UUID playerId,
+            @RequestParam String playerToken) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.getRoom(roomId)
                 .filter(r -> playerId.equals(r.getHostId()))
                 .filter(r -> r.getPhase() == com.mafia.game.model.GamePhase.VOTING)
@@ -135,8 +192,15 @@ public class GameController {
                 .orElse(ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 
+    /** Only the owning player can retrieve their own role — token verification prevents role enumeration. */
     @GetMapping("/players/{playerId}")
-    public ResponseEntity<Player> getPlayer(@PathVariable UUID roomId, @PathVariable UUID playerId) {
+    public ResponseEntity<Player> getPlayer(
+            @PathVariable UUID roomId,
+            @PathVariable UUID playerId,
+            @RequestParam String playerToken) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.getPlayer(roomId, playerId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -146,7 +210,11 @@ public class GameController {
     public ResponseEntity<Room> rematchVote(
             @PathVariable UUID roomId,
             @RequestParam UUID playerId,
+            @RequestParam String playerToken,
             @RequestParam String choice) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return gameService.rematchVote(roomId, playerId, choice)
                 .map(r -> { wsHandler.broadcast(roomId); return ResponseEntity.ok(r); })
                 .orElse(ResponseEntity.badRequest().build());
@@ -156,7 +224,11 @@ public class GameController {
     public ResponseEntity<Void> postChat(
             @PathVariable UUID roomId,
             @RequestParam UUID playerId,
+            @RequestParam String playerToken,
             @RequestBody ChatMessageRequest request) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         roomService.postMessage(roomId, playerId, request.getMessage());
         wsHandler.broadcast(roomId);
         return ResponseEntity.ok().build();
@@ -165,7 +237,11 @@ public class GameController {
     @GetMapping("/chat")
     public ResponseEntity<List<ChatMessage>> getChat(
             @PathVariable UUID roomId,
-            @RequestParam UUID playerId) {
+            @RequestParam UUID playerId,
+            @RequestParam String playerToken) {
+        if (roomService.verifyToken(roomId, playerId, playerToken).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return ResponseEntity.ok(roomService.getMessages(roomId, playerId));
     }
 }

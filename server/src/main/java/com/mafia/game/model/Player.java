@@ -1,5 +1,6 @@
 package com.mafia.game.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,6 +30,10 @@ public class Player {
     
     /** UUID of the room the player is currently in */
     private UUID roomId;
+
+    /** Cryptographically random bearer token — never serialized in JSON responses */
+    @JsonIgnore
+    private String secret;
 
     /**
      * Enum representing the different roles a player can have in the Mafia game.

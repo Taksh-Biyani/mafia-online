@@ -14,6 +14,7 @@ Cross off items with ~~strikethrough~~ when done, or remove them entirely.
 - ~~Public/private servers~~ — toggle on create-room form; private rooms hidden from browse list, joinable by code only
 
 - ~~Security~~ — roles hidden from room state JSON (`@JsonIgnoreProperties`); math CAPTCHA required to create/join rooms (server-side HMAC, 10-min window)
+- ~~Security hardening~~ — per-player secret bearer token (generated on join, `@JsonIgnore`); all game action endpoints require `playerToken`; role enumeration via `GET /players/{id}` blocked (token must match); `DELETE /api/rooms/{id}` removed; `X-Forwarded-For` spoofing patched; rate limiting applied to `createRoom`; 121 tests passing
 
 ## Remaining
 

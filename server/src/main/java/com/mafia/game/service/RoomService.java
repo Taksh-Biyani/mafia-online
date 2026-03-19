@@ -109,6 +109,7 @@ public class RoomService {
                             .role(Player.Role.CITIZEN)
                             .alive(true)
                             .roomId(roomId)
+                            .secret(UUID.randomUUID().toString().replace("-", ""))
                             .build();
                     room.getPlayers().add(player);
                     return player;
@@ -146,6 +147,21 @@ public class RoomService {
                     return removed;
                 })
                 .orElse(false);
+    }
+
+    /**
+     * Verifies that the given token matches the stored secret for the player.
+     *
+     * @param roomId   the room the player is in
+     * @param playerId the player to verify
+     * @param token    the token supplied by the caller
+     * @return Optional containing the player if verified, empty if not found or token mismatch
+     */
+    public Optional<Player> verifyToken(UUID roomId, UUID playerId, String token) {
+        if (token == null || token.isBlank()) return Optional.empty();
+        return roomManager.getRoom(roomId)
+                .flatMap(r -> r.findPlayer(playerId))
+                .filter(p -> token.equals(p.getSecret()));
     }
 
     /**

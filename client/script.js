@@ -5,6 +5,7 @@ class MafiaGameClient {
         this.baseUrl = window.location.origin;
         this.currentRoomId = null;
         this.currentPlayerId = null;
+        this.playerToken = null;
         this.isHost = false;
         this.myRole = null;
         this.roleDisplayed = false;
@@ -275,6 +276,7 @@ class MafiaGameClient {
                 const data = await response.json();
                 this.currentRoomId = data.room.id;
                 this.currentPlayerId = data.creator.id;
+                this.playerToken = data.playerToken;
                 this.currentPlayerName = creatorName;
                 this.isHost = true;
                 this.myRole = null;
@@ -330,15 +332,16 @@ class MafiaGameClient {
             this.applyCooldownVisual('submit-join-room', 10); // only apply cooldown for non-conflict responses
 
             if (response.ok) {
-                const player = await response.json();
-                this.currentPlayerId = player.id;
-                this.currentRoomId = player.roomId;
-                this.currentPlayerName = player.name;
+                const data = await response.json();
+                this.currentPlayerId = data.player.id;
+                this.currentRoomId = data.player.roomId;
+                this.playerToken = data.playerToken;
+                this.currentPlayerName = data.player.name;
                 this.isHost = false;
                 this.myRole = null;
                 this.roleDisplayed = false;
                 this.gameOverShown = false;
-                this.showMessage(`Joined room as ${player.name}!`, 'success');
+                this.showMessage(`Joined room as ${data.player.name}!`, 'success');
                 this.showGameRoom();
             } else {
                 const msg = await response.text();
@@ -373,7 +376,7 @@ class MafiaGameClient {
 
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/start?playerId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/start?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 { method: 'POST' }
             );
 
@@ -395,7 +398,7 @@ class MafiaGameClient {
 
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/leave?playerId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/leave?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 { method: 'POST' }
             );
             if (!response.ok) {
@@ -411,6 +414,7 @@ class MafiaGameClient {
         this._actionInFlight = false;
         this.currentRoomId = null;
         this.currentPlayerId = null;
+        this.playerToken = null;
         this.isHost = false;
         this.myRole = null;
         this.roleDisplayed = false;
@@ -558,7 +562,7 @@ class MafiaGameClient {
     async fetchMyRole() {
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/players/${this.currentPlayerId}`
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/players/${this.currentPlayerId}?playerToken=${this.playerToken}`
             );
             if (response.ok) {
                 const player = await response.json();
@@ -875,7 +879,7 @@ class MafiaGameClient {
         document.querySelectorAll('.game-over-btn').forEach(b => b.disabled = true);
         try {
             await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/rematch?playerId=${this.currentPlayerId}&choice=PLAY_AGAIN`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/rematch?playerId=${this.currentPlayerId}&choice=PLAY_AGAIN&playerToken=${this.playerToken}`,
                 { method: 'POST' }
             );
         } catch (error) {
@@ -888,7 +892,7 @@ class MafiaGameClient {
         document.querySelectorAll('.game-over-btn').forEach(b => b.disabled = true);
         try {
             await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/rematch?playerId=${this.currentPlayerId}&choice=LEAVE`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/rematch?playerId=${this.currentPlayerId}&choice=LEAVE&playerToken=${this.playerToken}`,
                 { method: 'POST' }
             );
         } catch (error) {
@@ -903,7 +907,7 @@ class MafiaGameClient {
         if (!this.isRequestAllowed('endDay', 4000)) return;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/day/end?playerId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/day/end?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 { method: 'POST' }
             );
             if (!response.ok) {
@@ -918,7 +922,7 @@ class MafiaGameClient {
         if (!this.isRequestAllowed('skipNight', 3000)) return;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/end?playerId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/end?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 { method: 'POST' }
             );
             if (!response.ok) {
@@ -933,7 +937,7 @@ class MafiaGameClient {
         if (!this.isRequestAllowed('forceResolveVotes', 5000)) return;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/vote/resolve?playerId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/vote/resolve?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 { method: 'POST' }
             );
             if (!response.ok) {
@@ -949,7 +953,7 @@ class MafiaGameClient {
         this._actionInFlight = true;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/vote/skip?voterId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/vote/skip?voterId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 { method: 'POST' }
             );
             if (response.ok) {
@@ -971,7 +975,7 @@ class MafiaGameClient {
         this._actionInFlight = true;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/mafia-skip?playerId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/mafia-skip?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 { method: 'POST' }
             );
             if (response.ok) {
@@ -993,7 +997,7 @@ class MafiaGameClient {
         this._actionInFlight = true;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/action?playerId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/action?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1020,7 +1024,7 @@ class MafiaGameClient {
         this._actionInFlight = true;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/investigate?playerId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/investigate?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1048,7 +1052,7 @@ class MafiaGameClient {
         this._actionInFlight = true;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/protect?playerId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/night/protect?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1075,7 +1079,7 @@ class MafiaGameClient {
         this._actionInFlight = true;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/vote?voterId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/vote?voterId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1231,7 +1235,7 @@ class MafiaGameClient {
         if (!this.currentRoomId || !this.currentPlayerId) return;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/chat?playerId=${this.currentPlayerId}`
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/chat?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`
             );
             if (!response.ok) return;
             const messages = await response.json();
@@ -1269,7 +1273,7 @@ class MafiaGameClient {
         if (!this.isRequestAllowed('sendChat', 1500)) return;
         try {
             const response = await fetch(
-                `${this.baseUrl}/api/rooms/${this.currentRoomId}/chat?playerId=${this.currentPlayerId}`,
+                `${this.baseUrl}/api/rooms/${this.currentRoomId}/chat?playerId=${this.currentPlayerId}&playerToken=${this.playerToken}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
