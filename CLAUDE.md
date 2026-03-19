@@ -111,16 +111,14 @@ GET    /api/rooms/{roomId}/chat?playerId=...              Get chat messages (fil
 
 **Voting:** Votes stored as `Map<UUID, UUID>` (voterId → targetId) in Room. Auto-resolves when all alive players vote. Most-voted player eliminated.
 
-## What's not implemented yet
+## Housekeeping
 
-- **Detective UI** — endpoint exists (`/night/investigate`), no frontend for it
-- **Doctor UI** — endpoint exists (`/night/protect`), no frontend for it
-- **Game end screen** — shows generic "Game Over"; no winner announcement or role reveal
-- **Night timer** — no auto-advance; mafia must act or host calls `/night/end`
-- **WebSocket** — `WebSocketConfig.java` is an empty stub; using 2s polling instead
-- **Persistence** — all in-memory, wiped on server restart
-- **Security** — no auth; role and vote map exposed in room JSON
-- **Tests** — GameService and GameController have zero test coverage
+At the start of each session, scan the `server/` root directory for junk files (files with garbage names, accidental command fragments, temp files that aren't `.mvn/`, `src/`, `target/`, `pom.xml`, `mvnw`, `mvnw.cmd`, `run-server.bat`, `.gitignore`, `.gitattributes`) and delete them without asking.
+
+## Task tracking
+
+**Always read `todo.md` at the start of any session** — it is the authoritative list of what's done and what remains.
+After completing any significant feature or fix, update `todo.md` immediately: remove finished items from "Remaining" and add them to "Completed".
 
 ## Chat system
 

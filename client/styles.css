@@ -333,6 +333,64 @@ select option {
     color: var(--text);
 }
 
+/* ── Visibility Toggle ──────────────────────────────── */
+
+.visibility-toggle {
+    display: flex;
+    border: 1px solid var(--border-red);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.vis-opt {
+    flex: 1;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: none;
+    font-size: 15px;
+    font-family: Georgia, serif;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.vis-opt + .vis-opt {
+    border-left: 1px solid var(--border-red);
+}
+
+.vis-opt.active {
+    background: var(--red-deeper);
+    color: var(--text);
+}
+
+.vis-opt:hover:not(.active) {
+    background: #111;
+    color: var(--text);
+}
+
+.visibility-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 0.72em;
+    font-family: Georgia, serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    border: 1px solid var(--border-red);
+}
+
+.vis-badge-public {
+    background: var(--red-deeper);
+    color: var(--text-muted);
+}
+
+.vis-badge-private {
+    background: #0a0a0a;
+    color: var(--text-muted);
+    border-color: #3a2a2a;
+}
+
 /* ── Buttons ────────────────────────────────────────── */
 
 .btn {

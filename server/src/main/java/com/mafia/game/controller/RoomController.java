@@ -5,7 +5,9 @@ import com.mafia.game.api.CreateRoomResponse;
 import com.mafia.game.api.JoinRoomRequest;
 import com.mafia.game.model.Player;
 import com.mafia.game.room.Room;
+import com.mafia.game.service.CaptchaService;
 import com.mafia.game.service.RoomService;
+import com.mafia.game.websocket.RoomWebSocketHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -32,6 +34,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/rooms")
 public class RoomController {
     private final RoomService roomService;
+    private final RoomWebSocketHandler wsHandler;
+    private final CaptchaService captchaService;
     private final Map<String, Deque<Long>> joinAttempts = new ConcurrentHashMap<>();
     private final Map<String, Long> joinBlockedUntil = new ConcurrentHashMap<>();
 
@@ -39,8 +43,10 @@ public class RoomController {
     private static final int JOIN_MAX_REQUESTS = 3;
     private static final int JOIN_BLOCK_MS = 10_000;
 
-    public RoomController(RoomService roomService) {
+    public RoomController(RoomService roomService, RoomWebSocketHandler wsHandler, CaptchaService captchaService) {
         this.roomService = roomService;
+        this.wsHandler = wsHandler;
+        this.captchaService = captchaService;
     }
 
     /** Returns true if this IP has exceeded the join rate limit. Tracks a sliding 5s window; blocks for 10s at 4+ requests. */
@@ -81,7 +87,10 @@ public class RoomController {
      * @return ResponseEntity containing the CreateRoomResponse with 201 status
      */
     @PostMapping
-    public ResponseEntity<?> createRoom(@RequestBody CreateRoomRequest request) {
+    public ResponseEntity<?> createRoom(@RequestBody CreateRoomRequest request, HttpServletRequest httpReq) {
+        if (!captchaService.verify(request.getCaptchaToken(), getClientIp(httpReq))) {
+            return ResponseEntity.badRequest().body("Invalid captcha");
+        }
         Room room;
         try {
             room = roomService.createRoom(
@@ -89,7 +98,8 @@ public class RoomController {
                     request.getMinPlayers(),
                     request.getMaxPlayers(),
                     request.getDayDurationSeconds(),
-                    request.getMafiaCount());
+                    request.getMafiaCount(),
+                    request.isPublicRoom());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -141,12 +151,15 @@ public class RoomController {
      * @return ResponseEntity containing the created Player or 400 error
      */
     @PostMapping("/{roomId}/join")
-    public ResponseEntity<Player> joinRoom(@PathVariable UUID roomId, @RequestBody JoinRoomRequest request, HttpServletRequest httpReq) {
+    public ResponseEntity<?> joinRoom(@PathVariable UUID roomId, @RequestBody JoinRoomRequest request, HttpServletRequest httpReq) {
         if (isJoinRateLimited(httpReq)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
         }
+        if (!captchaService.verify(request.getCaptchaToken(), getClientIp(httpReq))) {
+            return ResponseEntity.badRequest().body("Invalid captcha");
+        }
         return roomService.joinRoom(roomId, request.getPlayerName())
-                .map(ResponseEntity::ok)
+                .map(p -> { wsHandler.broadcast(roomId); return ResponseEntity.ok(p); })
                 .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
     }
 
@@ -159,12 +172,15 @@ public class RoomController {
      * @return ResponseEntity containing the created Player or 400 error
      */
     @PostMapping("/join")
-    public ResponseEntity<Player> joinByCode(@RequestParam String code, @RequestBody JoinRoomRequest request, HttpServletRequest httpReq) {
+    public ResponseEntity<?> joinByCode(@RequestParam String code, @RequestBody JoinRoomRequest request, HttpServletRequest httpReq) {
         if (isJoinRateLimited(httpReq)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
         }
+        if (!captchaService.verify(request.getCaptchaToken(), getClientIp(httpReq))) {
+            return ResponseEntity.badRequest().body("Invalid captcha");
+        }
         return roomService.joinRoomByCode(code, request.getPlayerName())
-                .map(ResponseEntity::ok)
+                .map(p -> { wsHandler.broadcast(p.getRoomId()); return ResponseEntity.ok(p); })
                 .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
     }
 
@@ -178,9 +194,9 @@ public class RoomController {
      */
     @PostMapping("/{roomId}/leave")
     public ResponseEntity<Void> leaveRoom(@PathVariable UUID roomId, @RequestParam UUID playerId) {
-        return roomService.leaveRoom(roomId, playerId)
-                ? ResponseEntity.ok().build()
-                : ResponseEntity.notFound().build();
+        boolean left = roomService.leaveRoom(roomId, playerId);
+        if (left) wsHandler.broadcast(roomId);
+        return left ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 
     /**

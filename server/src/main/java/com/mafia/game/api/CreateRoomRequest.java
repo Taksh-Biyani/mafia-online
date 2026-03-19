@@ -25,4 +25,10 @@ public class CreateRoomRequest {
 
     /** Number of mafia players in the game. Defaults to 1. Max 2 if ≥6 players, max 3 if ≥8 players. */
     private int mafiaCount = 1;
+
+    /** Whether the room appears in the public browse list. Defaults to true. */
+    private boolean publicRoom = true;
+
+    /** Cloudflare Turnstile response token from the client widget. */
+    private String captchaToken;
 }

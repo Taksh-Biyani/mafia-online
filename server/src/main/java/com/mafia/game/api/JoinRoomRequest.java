@@ -10,4 +10,7 @@ import lombok.Data;
 public class JoinRoomRequest {
     /** The display name for the player joining the room. */
     private String playerName;
+
+    /** Cloudflare Turnstile response token from the client widget. */
+    private String captchaToken;
 }

@@ -44,6 +44,10 @@ public class RoomService {
         return roomManager.createRoom(joinCode, minPlayers, maxPlayers, dayDurationSeconds, mafiaCount);
     }
 
+    public Room createRoom(String joinCode, int minPlayers, int maxPlayers, int dayDurationSeconds, int mafiaCount, boolean publicRoom) {
+        return roomManager.createRoom(joinCode, minPlayers, maxPlayers, dayDurationSeconds, mafiaCount, publicRoom);
+    }
+
     /**
      * Retrieves a room by its unique ID.
      *
@@ -72,6 +76,7 @@ public class RoomService {
     public List<Room> listRooms() {
         return roomManager.getAllRooms().values().stream()
                 .filter(r -> r.getPhase() == GamePhase.LOBBY)
+                .filter(Room::isPublicRoom)
                 .toList();
     }
 

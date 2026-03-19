@@ -140,6 +140,16 @@
                     <option value="3">3 (need ≥8 players)</option>
                 </select>
             </div>
+            <div class="form-group">
+                <div id="turnstile-create"></div>
+            </div>
+            <div class="form-group">
+                <label>Visibility</label>
+                <div class="visibility-toggle">
+                    <button type="button" class="vis-opt active" id="vis-public">Public</button>
+                    <button type="button" class="vis-opt" id="vis-private">Private</button>
+                </div>
+            </div>
             <button id="submit-create-room" class="btn btn-danger">Create Room</button>
             <button id="back-from-create" class="btn btn-secondary">Back</button>
         </div>
@@ -154,6 +164,9 @@
             <div class="form-group">
                 <label for="player-name">Your Name</label>
                 <input type="text" id="player-name" placeholder="3–12 characters" minlength="3" maxlength="12">
+            </div>
+            <div class="form-group">
+                <div id="turnstile-join"></div>
             </div>
             <button id="submit-join-room" class="btn btn-danger">Enter Room</button>
             <button id="back-from-join" class="btn btn-secondary">Back</button>
@@ -202,7 +215,7 @@
             </svg>
             <h2>The Room</h2>
             <div id="room-info">
-                <p><strong>Code:</strong> <span id="current-room-code"></span></p>
+                <p><strong>Code:</strong> <span id="current-room-code"></span> <span id="room-visibility-badge" class="visibility-badge"></span></p>
                 <p><strong>Players:</strong> <span id="player-count">0</span> / <span id="max-players-display">0</span></p>
                 <p><strong>Phase:</strong> <span id="game-phase">LOBBY</span></p>
             </div>
@@ -249,5 +262,6 @@
     </div>
 
 <script src="script.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </body>
 </html>

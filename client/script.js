@@ -90,6 +90,16 @@ class MafiaGameClient {
         document.getElementById('submit-create-room').addEventListener('click', () => this.createRoom());
         document.getElementById('back-from-create').addEventListener('click', () => this.showMainMenu());
 
+        // Visibility toggle
+        document.getElementById('vis-public').addEventListener('click', () => {
+            document.getElementById('vis-public').classList.add('active');
+            document.getElementById('vis-private').classList.remove('active');
+        });
+        document.getElementById('vis-private').addEventListener('click', () => {
+            document.getElementById('vis-private').classList.add('active');
+            document.getElementById('vis-public').classList.remove('active');
+        });
+
         // Auto-update minPlayers when mafia count changes; clamp player inputs to [4,12]
         document.getElementById('mafia-count').addEventListener('change', () => {
             const mafiaCount = parseInt(document.getElementById('mafia-count').value) || 1;
@@ -179,11 +189,29 @@ class MafiaGameClient {
     showCreateRoom() {
         this.setScene('scene-menu');
         this.navigateTo('create-room-section');
+        this._renderTurnstile('turnstile-create', '_turnstileCreate', '_turnstileCreateId');
     }
 
     showJoinRoom() {
         this.setScene('scene-menu');
         this.navigateTo('join-room-section');
+        this._renderTurnstile('turnstile-join', '_turnstileJoin', '_turnstileJoinId');
+    }
+
+    _renderTurnstile(containerId, tokenProp, widgetProp, attempts = 0) {
+        if (!window.turnstile) {
+            if (attempts < 50) setTimeout(() => this._renderTurnstile(containerId, tokenProp, widgetProp, attempts + 1), 100);
+            return;
+        }
+        if (this[widgetProp] != null) {
+            try { window.turnstile.remove(this[widgetProp]); } catch (e) {}
+            this[widgetProp] = null;
+        }
+        this[widgetProp] = window.turnstile.render('#' + containerId, {
+            sitekey: '0x4AAAAAACtZuf-T-LxmgBjV',
+            callback: (token) => { this[tokenProp] = token; },
+            'expired-callback': () => { this[tokenProp] = null; }
+        });
     }
 
     showRoomList() {
@@ -234,7 +262,7 @@ class MafiaGameClient {
             const response = await fetch(`${this.baseUrl}/api/rooms`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ joinCode: joinCode || null, playerName: creatorName, minPlayers, maxPlayers, dayDurationSeconds, mafiaCount }),
+                body: JSON.stringify({ joinCode: joinCode || null, playerName: creatorName, minPlayers, maxPlayers, dayDurationSeconds, mafiaCount, publicRoom: document.getElementById('vis-public').classList.contains('active'), captchaToken: this._turnstileCreate }),
                 signal: controller.signal
             });
 
@@ -252,7 +280,9 @@ class MafiaGameClient {
                 this.showMessage(`Room created! Code: ${data.room.joinCode}`, 'success');
                 this.showGameRoom();
             } else {
-                this.showMessage(`Failed to create room: ${await response.text()}`, 'error');
+                const msg = await response.text();
+                this.showMessage(`Failed to create room: ${msg}`, 'error');
+                window.turnstile?.reset(this._turnstileCreateId);
             }
         } catch (error) {
             this.showMessage(`Network error: ${error.message}`, 'error');
@@ -279,7 +309,7 @@ class MafiaGameClient {
             const response = await fetch(`${this.baseUrl}/api/rooms/join?code=${encodeURIComponent(roomCode)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ playerName })
+                body: JSON.stringify({ playerName, captchaToken: this._turnstileJoin })
             });
 
             if (response.status === 409) {
@@ -308,7 +338,9 @@ class MafiaGameClient {
                 this.showMessage(`Joined room as ${player.name}!`, 'success');
                 this.showGameRoom();
             } else {
-                this.showMessage(`Failed to join room: ${await response.text()}`, 'error');
+                const msg = await response.text();
+                this.showMessage(`Failed to join room: ${msg}`, 'error');
+                window.turnstile?.reset(this._turnstileJoinId);
             }
         } catch (error) {
             this.showMessage('Network error while joining room', 'error');
@@ -436,6 +468,11 @@ class MafiaGameClient {
             }
 
             document.getElementById('current-room-code').textContent = room.joinCode;
+            const badge = document.getElementById('room-visibility-badge');
+            if (badge) {
+                badge.textContent = room.publicRoom ? 'Public' : 'Private';
+                badge.className = 'visibility-badge ' + (room.publicRoom ? 'vis-badge-public' : 'vis-badge-private');
+            }
             document.getElementById('player-count').textContent = room.players.length;
             document.getElementById('max-players-display').textContent = room.maxPlayers;
             document.getElementById('game-phase').textContent = room.phase;
@@ -1105,25 +1142,48 @@ class MafiaGameClient {
         this.showJoinRoom();
     }
 
-    // --- Polling ---
+    // --- Real-time updates via WebSocket ---
 
     startRoomPolling() {
         this.stopRoomPolling();
-        this._scheduleNextPoll();
-    }
-
-    _scheduleNextPoll() {
-        this.roomPollingInterval = setTimeout(async () => {
-            await this.updateRoomDisplay();
-            if (this.currentRoomId) this._scheduleNextPoll();
-        }, 2000);
+        this._connectRoomWs();
     }
 
     stopRoomPolling() {
-        if (this.roomPollingInterval) {
-            clearTimeout(this.roomPollingInterval);
-            this.roomPollingInterval = null;
+        if (this._wsReconnectTimer) {
+            clearTimeout(this._wsReconnectTimer);
+            this._wsReconnectTimer = null;
         }
+        if (this._roomWs) {
+            this._roomWs.onclose = null; // suppress reconnect on intentional close
+            this._roomWs.close();
+            this._roomWs = null;
+        }
+    }
+
+    _connectRoomWs() {
+        if (!this.currentRoomId) return;
+        const url = `ws://localhost:8080/ws/room/${this.currentRoomId}`;
+        const ws = new WebSocket(url);
+        this._roomWs = ws;
+
+        ws.onmessage = () => {
+            this.updateRoomDisplay();
+        };
+
+        ws.onclose = () => {
+            this._roomWs = null;
+            if (this.currentRoomId) {
+                // Reconnect after 2s if still in a room
+                this._wsReconnectTimer = setTimeout(() => {
+                    if (this.currentRoomId) this._connectRoomWs();
+                }, 2000);
+            }
+        };
+
+        ws.onerror = () => {
+            ws.close(); // triggers onclose → reconnect
+        };
     }
 
     // --- Chat ---

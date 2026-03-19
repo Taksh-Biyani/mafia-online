@@ -1,6 +1,7 @@
 package com.mafia.game.room;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mafia.game.model.ChatMessage;
 import com.mafia.game.model.GamePhase;
@@ -42,7 +43,8 @@ public class Room {
     /** Maximum number of players allowed in this room */
     private int maxPlayers;
     
-    /** List of players currently in this room */
+    /** List of players currently in this room. Role is hidden here — each player fetches their own role via /players/{id}. */
+    @JsonIgnoreProperties({"role"})
     @Builder.Default
     private List<Player> players = new ArrayList<>();
 
@@ -54,6 +56,10 @@ public class Room {
 
     /** Number of mafia players assigned when the game starts (host-configurable, default 1) */
     private int mafiaCount;
+
+    /** Whether the room appears in the public browse list; private rooms require a join code */
+    @Builder.Default
+    private boolean publicRoom = true;
 
     /** Votes cast during the voting phase: voterId -> targetPlayerId */
     @Builder.Default
