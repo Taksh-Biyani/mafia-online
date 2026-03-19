@@ -233,6 +233,64 @@
 
     </div>
 
+    <!-- ── Help / Tutorial (fixed, top-right) ───────────── -->
+    <button id="help-toggle-btn" aria-label="How to play">?</button>
+    <div id="help-panel">
+        <div id="help-title">How to Play</div>
+        <div id="help-content">
+            <h3>The Goal</h3>
+            <p><strong>Town</strong> wins by eliminating all Mafia.<br>
+               <strong>Mafia</strong> wins when their count equals or outnumbers the remaining Town.</p>
+
+            <h3>Phase Flow</h3>
+            <p>Lobby → Night → Day → Voting → (repeat until someone wins)</p>
+
+            <h3>Roles</h3>
+
+            <div class="help-role help-role-mafia">
+                <div class="help-role-name">Mafia</div>
+                <p>Each night, Mafia secretly vote together to eliminate one Town player. During the Mafia phase you can chat privately with your allies. During the day, blend in and misdirect Town.</p>
+            </div>
+
+            <div class="help-role help-role-detective">
+                <div class="help-role-name">Detective <span class="help-req">(5+ players)</span></div>
+                <p>Each night, secretly investigate one player to learn their exact role. Only you see the result. Use it wisely — accusing too early tips off the Mafia.</p>
+            </div>
+
+            <div class="help-role help-role-doctor">
+                <div class="help-role-name">Doctor <span class="help-req">(6+ players)</span></div>
+                <p>Each night, choose one player to protect. If Mafia targets them that night, they survive. You cannot protect the same player two nights in a row.</p>
+            </div>
+
+            <div class="help-role help-role-citizen">
+                <div class="help-role-name">Citizen</div>
+                <p>No night ability. Your power is in debate. Listen carefully during the day, identify suspicious behaviour, and vote to eliminate Mafia.</p>
+            </div>
+
+            <h3>Night Phase</h3>
+            <p>Three sub-phases run in order: Mafia vote → Detective investigates → Doctor protects. Each sub-phase auto-advances when all relevant players have acted (or skipped).</p>
+
+            <h3>Day Phase</h3>
+            <p>Everyone can chat and discuss. The host controls a countdown timer. When it reaches zero (or the host ends it early), the game moves to voting.</p>
+
+            <h3>Voting Phase</h3>
+            <p>Each player votes to eliminate someone, or skips. The player with the most votes is eliminated. A tie spares everyone. Voting auto-resolves once all alive players have voted.</p>
+
+            <h3>Chat Channels</h3>
+            <p><strong>General</strong> — all players during lobby, day, and voting.<br>
+               <strong>Mafia Night</strong> — Mafia only, during the Mafia night phase.<br>
+               <strong>Dead</strong> — eliminated players, visible only to other dead players.</p>
+
+            <h3>Tips</h3>
+            <ul>
+                <li>The room code lets friends join a private game directly.</li>
+                <li>Mafia should spread suspicion early to avoid being voted out.</li>
+                <li>The Detective should share findings carefully — announcing too early makes you a target.</li>
+                <li>The Doctor should consider protecting themselves or the Detective.</li>
+            </ul>
+        </div>
+    </div>
+
     <!-- ── Chat (fixed, top-right of viewport) ──────────── -->
     <button id="chat-toggle-btn" aria-label="Open chat">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">

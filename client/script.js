@@ -127,6 +127,9 @@ class MafiaGameClient {
         document.getElementById('start-game-btn').addEventListener('click', () => this.startGame());
         document.getElementById('leave-room-btn').addEventListener('click', () => this.leaveRoom());
 
+        // Help / Tutorial
+        document.getElementById('help-toggle-btn').addEventListener('click', () => this.toggleHelp());
+
         // Chat
         document.getElementById('chat-toggle-btn').addEventListener('click', () => this.toggleChatPanel());
         document.getElementById('chat-form').addEventListener('submit', (e) => {
@@ -1187,6 +1190,12 @@ class MafiaGameClient {
     }
 
     // --- Chat ---
+
+    toggleHelp() {
+        const panel = document.getElementById('help-panel');
+        this.helpOpen = !this.helpOpen;
+        panel.classList.toggle('help-open', this.helpOpen);
+    }
 
     toggleChatPanel() {
         const panel = document.getElementById('chat-panel');

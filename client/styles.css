@@ -816,6 +816,147 @@ select option {
     padding-top: 14px;
 }
 
+/* ── Help / Tutorial ────────────────────────────────── */
+
+#help-toggle-btn {
+    position: fixed;
+    top: 1vh;
+    right: calc(3.5vw + 1.5vw); /* left of the chat button */
+    margin: 0;
+    width: 3.5vw;
+    height: 3.5vw;
+    background: #ffffff;
+    border: 2.5px solid #000000;
+    border-radius: 1vw;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    padding: 0;
+    font-size: 1.5vw;
+    font-weight: 900;
+    font-family: 'Cinzel', serif;
+    color: #222;
+    line-height: 1;
+    transition: background 0.15s;
+    box-shadow: 0 0.3vw 1vw rgba(0,0,0,0.18);
+}
+
+#help-toggle-btn:hover {
+    background: #f0f0f0;
+}
+
+#help-panel {
+    position: fixed;
+    top: calc(3.5vw + 1vh);
+    right: calc(3.5vw + 1.5vw);
+    margin: 0;
+    width: 28vw;
+    max-height: calc(100vh - 3.5vw - 5vh);
+    background: #ffffff;
+    border: 2.5px solid #000000;
+    border-radius: 1vw;
+    z-index: 299;
+    overflow: hidden;
+    box-shadow: 0 0.4vw 1.5vw rgba(0,0,0,0.22);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+#help-panel.help-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+#help-title {
+    flex-shrink: 0;
+    padding: 1vh 1vw;
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #555;
+    border-bottom: 1.5px solid #ddd;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    background: #f8f8f8;
+}
+
+#help-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.2vh 1vw 2vh;
+    font-family: Georgia, serif;
+    font-size: 0.82em;
+    color: #111;
+    line-height: 1.6;
+}
+
+#help-content h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #111;
+    margin: 1.4em 0 0.4em;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.25em;
+}
+
+#help-content h3:first-child {
+    margin-top: 0;
+}
+
+#help-content p {
+    margin: 0 0 0.6em;
+}
+
+#help-content ul {
+    padding-left: 1.2em;
+    margin: 0;
+}
+
+#help-content ul li {
+    margin-bottom: 0.4em;
+}
+
+.help-role {
+    border-left: 3px solid #ccc;
+    padding: 0.5em 0.6em;
+    margin: 0.5em 0 0.8em;
+    border-radius: 0 4px 4px 0;
+    background: #fafafa;
+}
+
+.help-role-name {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 0.95em;
+    margin-bottom: 0.3em;
+}
+
+.help-req {
+    font-family: Georgia, serif;
+    font-weight: normal;
+    font-size: 0.8em;
+    color: #888;
+}
+
+.help-role-mafia   { border-color: #c0392b; background: #fff5f5; }
+.help-role-mafia .help-role-name { color: #c0392b; }
+
+.help-role-detective { border-color: #2471a3; background: #f0f7ff; }
+.help-role-detective .help-role-name { color: #2471a3; }
+
+.help-role-doctor  { border-color: #1e8449; background: #f0fff4; }
+.help-role-doctor .help-role-name { color: #1e8449; }
+
+.help-role-citizen { border-color: #888; background: #f8f8f8; }
+.help-role-citizen .help-role-name { color: #444; }
+
 /* ── Chat ────────────────────────────────────────────── */
 
 /* Toggle button — top-right, ~4× larger than default, icon only */
