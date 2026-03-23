@@ -2,6 +2,7 @@ package com.mafia.game.room;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mafia.game.model.ChatMessage;
 import com.mafia.game.model.GamePhase;
@@ -202,5 +203,24 @@ public class Room {
     @JsonProperty("mafiaVoteCount")
     public int getMafiaVoteCount() {
         return mafiaVotes.size() + mafiaSkips.size();
+    }
+
+    /**
+     * Returns how many mafia players are currently alive.
+     * Safe to expose in JSON — reveals count only, never identities.
+     */
+    @JsonProperty("aliveMafiaCount")
+    public int getAliveMafiaCount() {
+        return getAlivePlayerCountByRole(Player.Role.MAFIA);
+    }
+
+    /**
+     * Returns the full player list WITH roles revealed, but only when the game has ended.
+     * During active play this is null (omitted from JSON) so roles stay hidden.
+     */
+    @JsonProperty("revealedPlayers")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public List<Player> getRevealedPlayers() {
+        return phase == GamePhase.ENDED ? players : null;
     }
 }

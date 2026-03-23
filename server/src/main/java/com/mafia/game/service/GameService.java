@@ -255,6 +255,7 @@ public class GameService {
                         // else: tie → no elimination
                     }
                     room.getVotes().clear();
+                    room.getVoteSkips().clear();
                     Optional<Player.Role> win = checkWinCondition(room);
                     if (win.isPresent()) {
                         room.setPhase(GamePhase.ENDED);

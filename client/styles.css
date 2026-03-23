@@ -1,6 +1,6 @@
 /* Mafia Online Game Styles — Noir Red/Black Theme */
 
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Special+Elite&display=swap');
 
 .sr-only {
     position: absolute;
@@ -37,8 +37,15 @@
     box-sizing: border-box;
 }
 
+/* ── Custom Scrollbars ──────────────────────────────── */
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #050000; }
+::-webkit-scrollbar-thumb { background: #3a0808; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--red-dark); }
+
 body {
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: 'Special Elite', Georgia, serif;
     background: radial-gradient(ellipse 120% 100% at 50% 0%, #1a0000 0%, #0a0000 35%, #000000 70%);
     background-attachment: fixed;
     min-height: 100vh;
@@ -49,6 +56,17 @@ body {
     color: var(--text);
     position: relative;
     overflow-x: hidden;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 200px;
 }
 
 /* ── Scene Silhouettes (right side) ───────────────── */
@@ -260,7 +278,7 @@ input[type="number"] {
     border: 1px solid var(--border-red);
     border-radius: 3px;
     font-size: 15px;
-    font-family: Georgia, serif;
+    font-family: 'Special Elite', Georgia, serif;
     color: var(--text);
     transition: border-color 0.25s, box-shadow 0.25s;
 }
@@ -308,7 +326,7 @@ select {
     border: 1px solid var(--border-red);
     border-radius: 3px;
     font-size: 15px;
-    font-family: Georgia, serif;
+    font-family: 'Special Elite', Georgia, serif;
     color: var(--text);
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
@@ -348,7 +366,7 @@ select option {
     background: var(--bg-input);
     border: none;
     font-size: 15px;
-    font-family: Georgia, serif;
+    font-family: 'Special Elite', Georgia, serif;
     color: var(--text-muted);
     cursor: pointer;
     transition: background 0.2s, color 0.2s;
@@ -373,7 +391,7 @@ select option {
     padding: 1px 7px;
     border-radius: 3px;
     font-size: 0.72em;
-    font-family: Georgia, serif;
+    font-family: 'Special Elite', Georgia, serif;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     vertical-align: middle;
@@ -422,13 +440,13 @@ select option {
 
 .btn-primary {
     background: transparent;
-    color: #5588cc;
-    border-color: #2a4a7a;
+    color: var(--gold);
+    border-color: #5a4010;
 }
 .btn-primary:hover {
-    background: #0d1e3a;
-    border-color: #5588cc;
-    color: #88aaee;
+    background: #1a1000;
+    border-color: var(--gold);
+    color: #e8c060;
 }
 
 .btn-secondary {
@@ -444,13 +462,13 @@ select option {
 
 .btn-success {
     background: transparent;
-    color: #4a9a5a;
-    border-color: #1e4a26;
+    color: #3d7a4d;
+    border-color: #1a3a22;
 }
 .btn-success:hover {
-    background: #0d2010;
-    border-color: #4a9a5a;
-    color: #6aba7a;
+    background: #0a1a0e;
+    border-color: #3d7a4d;
+    color: #5a9a6a;
 }
 
 .btn-danger {
@@ -478,13 +496,13 @@ select option {
 
 .btn-info {
     background: transparent;
-    color: #508a8a;
-    border-color: #2a5050;
+    color: #8a8070;
+    border-color: #3a3028;
 }
 .btn-info:hover {
-    background: #0d1e1e;
-    border-color: #508a8a;
-    color: #70aaaa;
+    background: #141210;
+    border-color: #8a8070;
+    color: var(--text);
 }
 
 /* ── Panels ─────────────────────────────────────────── */
@@ -607,7 +625,7 @@ select option {
     font-size: 14px;
     line-height: 1.5;
     border: 1px solid rgba(255,255,255,0.1);
-    font-family: Georgia, serif;
+    font-family: 'Special Elite', Georgia, serif;
     letter-spacing: 0.03em;
 }
 
@@ -825,8 +843,8 @@ select option {
     margin: 0;
     width: 3.5vw;
     height: 3.5vw;
-    background: #ffffff;
-    border: 2.5px solid #000000;
+    background: #0f0f0f;
+    border: 1.5px solid var(--border-red);
     border-radius: 1vw;
     cursor: pointer;
     display: flex;
@@ -837,14 +855,16 @@ select option {
     font-size: 1.5vw;
     font-weight: 900;
     font-family: 'Cinzel', serif;
-    color: #222;
+    color: var(--red-dark);
     line-height: 1;
-    transition: background 0.15s;
-    box-shadow: 0 0.3vw 1vw rgba(0,0,0,0.18);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    box-shadow: 0 0 8px rgba(139,0,0,0.2);
 }
 
 #help-toggle-btn:hover {
-    background: #f0f0f0;
+    background: #1a0505;
+    border-color: var(--red);
+    color: var(--red);
 }
 
 #help-panel {
@@ -854,12 +874,12 @@ select option {
     margin: 0;
     width: 28vw;
     max-height: calc(100vh - 3.5vw - 5vh);
-    background: #ffffff;
-    border: 2.5px solid #000000;
+    background: #0a0505;
+    border: 1.5px solid var(--border-red);
     border-radius: 1vw;
     z-index: 299;
     overflow: hidden;
-    box-shadow: 0 0.4vw 1.5vw rgba(0,0,0,0.22);
+    box-shadow: 0 0 20px rgba(139,0,0,0.15), 0 0.4vw 1.5vw rgba(0,0,0,0.5);
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.18s ease, visibility 0.18s ease;
@@ -878,20 +898,20 @@ select option {
     font-size: 0.85em;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #555;
-    border-bottom: 1.5px solid #ddd;
+    color: var(--text-muted);
+    border-bottom: 1.5px solid var(--border-red);
     font-family: 'Cinzel', serif;
     font-weight: 700;
-    background: #f8f8f8;
+    background: #0f0808;
 }
 
 #help-content {
     flex: 1;
     overflow-y: auto;
     padding: 1.2vh 1vw 2vh;
-    font-family: Georgia, serif;
+    font-family: 'Special Elite', Georgia, serif;
     font-size: 0.82em;
-    color: #111;
+    color: var(--text);
     line-height: 1.6;
 }
 
@@ -900,9 +920,9 @@ select option {
     font-size: 0.9em;
     text-transform: uppercase;
     letter-spacing: 0.07em;
-    color: #111;
+    color: var(--text);
     margin: 1.4em 0 0.4em;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--border-red);
     padding-bottom: 0.25em;
 }
 
@@ -912,6 +932,7 @@ select option {
 
 #help-content p {
     margin: 0 0 0.6em;
+    color: var(--text-muted);
 }
 
 #help-content ul {
@@ -924,11 +945,11 @@ select option {
 }
 
 .help-role {
-    border-left: 3px solid #ccc;
+    border-left: 3px solid #333;
     padding: 0.5em 0.6em;
     margin: 0.5em 0 0.8em;
     border-radius: 0 4px 4px 0;
-    background: #fafafa;
+    background: #111;
 }
 
 .help-role-name {
@@ -939,23 +960,23 @@ select option {
 }
 
 .help-req {
-    font-family: Georgia, serif;
+    font-family: 'Special Elite', Georgia, serif;
     font-weight: normal;
     font-size: 0.8em;
-    color: #888;
+    color: var(--text-muted);
 }
 
-.help-role-mafia   { border-color: #c0392b; background: #fff5f5; }
-.help-role-mafia .help-role-name { color: #c0392b; }
+.help-role-mafia   { border-color: var(--red); background: #1a0505; }
+.help-role-mafia .help-role-name { color: var(--red); }
 
-.help-role-detective { border-color: #2471a3; background: #f0f7ff; }
-.help-role-detective .help-role-name { color: #2471a3; }
+.help-role-detective { border-color: #2471a3; background: #05050f; }
+.help-role-detective .help-role-name { color: #4a8abf; }
 
-.help-role-doctor  { border-color: #1e8449; background: #f0fff4; }
-.help-role-doctor .help-role-name { color: #1e8449; }
+.help-role-doctor  { border-color: #1e8449; background: #051a05; }
+.help-role-doctor .help-role-name { color: #3a8a4a; }
 
-.help-role-citizen { border-color: #888; background: #f8f8f8; }
-.help-role-citizen .help-role-name { color: #444; }
+.help-role-citizen { border-color: #444; background: #0f0f0f; }
+.help-role-citizen .help-role-name { color: var(--text-muted); }
 
 /* ── Chat ────────────────────────────────────────────── */
 
@@ -968,8 +989,8 @@ select option {
     margin: 0;
     width: 3.5vw;
     height: 3.5vw;
-    background: #ffffff;
-    border: 2.5px solid #000000;
+    background: #0f0f0f;
+    border: 1.5px solid var(--border-red);
     border-radius: 1vw;
     cursor: pointer;
     display: none;
@@ -977,8 +998,9 @@ select option {
     justify-content: center;
     z-index: 300;
     padding: 0;
-    transition: background 0.15s;
-    box-shadow: 0 0.3vw 1vw rgba(0,0,0,0.18);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    box-shadow: 0 0 8px rgba(139,0,0,0.2);
+    color: var(--red-dark);
 }
 
 #chat-toggle-btn.chat-btn-visible {
@@ -986,7 +1008,9 @@ select option {
 }
 
 #chat-toggle-btn:hover {
-    background: #f0f0f0;
+    background: #1a0505;
+    border-color: var(--red);
+    color: var(--red);
 }
 
 #chat-toggle-btn svg {
@@ -1004,14 +1028,14 @@ select option {
     margin: 0;
     width: 22vw;
     height: calc(100vh - 3.5vw - 5vh);
-    background: #ffffff;
-    border: 2.5px solid #000000;
+    background: #0a0505;
+    border: 1.5px solid var(--border-red);
     border-radius: 1vw;
     z-index: 299;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 0.4vw 1.5vw rgba(0,0,0,0.22);
+    box-shadow: 0 0 20px rgba(139,0,0,0.15), 0 0.4vw 1.5vw rgba(0,0,0,0.5);
     text-align: left;
     /* Hidden until opened */
     opacity: 0;
@@ -1024,18 +1048,18 @@ select option {
     visibility: visible;
 }
 
-/* Channel label — top of the white box */
+/* Channel label — top of the dark panel */
 #chat-channel-label {
     flex-shrink: 0;
     padding: 1vh 1vw;
     font-size: 0.75em;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #555;
-    border-bottom: 1.5px solid #ddd;
+    color: var(--text-muted);
+    border-bottom: 1.5px solid var(--border-red);
     font-family: 'Cinzel', serif;
     font-weight: 700;
-    background: #f8f8f8;
+    background: #0f0808;
     text-align: left;
 }
 
@@ -1059,41 +1083,41 @@ select option {
     line-height: 1.5;
     word-break: break-word;
     text-align: left;
-    color: #111;
-    background: #f4f4f4;
+    color: var(--text);
+    background: #141010;
 }
 
 #chat-log li .chat-name {
     font-weight: bold;
-    color: #111;
+    color: var(--text);
     margin-right: 0.3vw;
 }
 
 #chat-log li .chat-text {
-    color: #333;
+    color: var(--text-muted);
 }
 
 #chat-log li .chat-you {
     font-weight: normal;
-    color: #666;
+    color: var(--text-muted);
     font-size: 0.9em;
 }
 
 #chat-log li.channel-dead {
-    background: #ececec;
-    color: #666;
+    background: #0f0f0f;
+    color: var(--text-muted);
 }
 
 #chat-log li.channel-mafia {
-    background: #fff0f0;
+    background: #200505;
 }
 
-/* Input — pinned to bottom of white box, enter to send */
+/* Input — pinned to bottom of dark panel, enter to send */
 #chat-form {
     flex-shrink: 0;
     padding: 0.8vh 0.6vw;
-    border-top: 1.5px solid #ddd;
-    background: #ffffff;
+    border-top: 1.5px solid var(--border-red);
+    background: #0a0505;
     text-align: left;
 }
 
@@ -1102,18 +1126,24 @@ select option {
     width: 100% !important;
     box-sizing: border-box;
     padding: 0.8vh 0.6vw;
-    background: #ffffff;
-    border: 1.5px solid #bbb;
+    background: #0f0808;
+    border: 1px solid var(--border-red);
     border-radius: 0.5vw;
     font-size: 0.9em;
-    font-family: Georgia, serif;
-    color: #111;
+    font-family: 'Special Elite', Georgia, serif;
+    color: var(--text);
     text-align: left;
+}
+
+#chat-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
 }
 
 #chat-input:focus {
     outline: none;
-    border-color: #000;
+    border-color: var(--red);
+    box-shadow: 0 0 0 1px rgba(192,57,43,0.2);
 }
 
 /* ── Responsive ──────────────────────────────────────── */
@@ -1209,11 +1239,11 @@ select option {
 }
 
 .game-over-verdict.victory {
-    color: #2ecc71;
+    color: var(--gold);
     text-shadow:
-        0 0 30px rgba(46, 204, 113, 0.9),
-        0 0 70px rgba(46, 204, 113, 0.4),
-        2px 2px 0 #003a1a;
+        0 0 30px rgba(201, 168, 76, 0.9),
+        0 0 70px rgba(201, 168, 76, 0.4),
+        2px 2px 0 #1a1000;
 }
 
 .game-over-verdict.defeat {
@@ -1323,7 +1353,7 @@ select option {
     line-height: 1;
 }
 
-.go-vote-yes { color: #2ecc71; }
+.go-vote-yes { color: var(--gold); }
 .go-vote-no  { color: #e74c3c; }
 
 .game-over-actions {

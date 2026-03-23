@@ -212,7 +212,7 @@ class MafiaGameClient {
             this[widgetProp] = null;
         }
         this[widgetProp] = window.turnstile.render('#' + containerId, {
-            sitekey: '0x4AAAAAACtZuf-T-LxmgBjV',
+            sitekey: '1x00000000000000000000AA',
             callback: (token) => { this[tokenProp] = token; },
             'expired-callback': () => { this[tokenProp] = null; }
         });
@@ -228,8 +228,8 @@ class MafiaGameClient {
         this.navigateTo('game-room-section', () => {
             this.updateRoomDisplay();
             this.startRoomPolling();
-            // Open chat panel by default when entering a game room
-            if (!this.chatPanelOpen) this.toggleChatPanel();
+            // Open chat panel by default on desktop; keep hidden on mobile
+            if (!this.chatPanelOpen && window.innerWidth > 768) this.toggleChatPanel();
         });
     }
 
@@ -455,6 +455,7 @@ class MafiaGameClient {
             if (!response.ok) return;
 
             const room = await response.json();
+            this._lastRoom = room;
 
             // Room was reset by everyone voting Play Again
             if (this.gameOverShown && room.phase === 'LOBBY') {
@@ -624,11 +625,14 @@ class MafiaGameClient {
         const playAgainVotes = room.playAgainVotes || [];
         const leaveVotes = room.leaveVotes || [];
 
-        container.innerHTML = room.players.map(p => {
-            const icon = icons[p.role] || icons.CITIZEN;
-            const isMafia = p.role === 'MAFIA';
+        // Use revealedPlayers (includes roles) when game is ENDED, fall back to players
+        const playerList = room.revealedPlayers || room.players;
+        container.innerHTML = playerList.map(p => {
+            const role = p.role || 'CITIZEN';
+            const icon = icons[role] || icons.CITIZEN;
+            const isMafia = role === 'MAFIA';
             const isMe = p.id === this.currentPlayerId;
-            const roleLabel = p.role.charAt(0) + p.role.slice(1).toLowerCase();
+            const roleLabel = role.charAt(0) + role.slice(1).toLowerCase();
             const votedPlay  = playAgainVotes.includes(p.id);
             const votedLeave = leaveVotes.includes(p.id);
             const voteEl = votedPlay
@@ -638,7 +642,7 @@ class MafiaGameClient {
                 : '<div class="go-vote"></div>';
             return `
                 <div class="go-card${isMafia ? ' is-mafia' : ''}${isMe ? ' is-me' : ''}">
-                    <img class="go-icon" src="${icon}" alt="${p.role}" loading="lazy">
+                    <img class="go-icon" src="${icon}" alt="${role}" loading="lazy">
                     <div class="go-name ${isMafia ? 'mafia' : 'town'}">${this.escapeHtml(p.name)}${isMe ? ' ★' : ''}</div>
                     <div class="go-role">${roleLabel}</div>
                     ${!p.alive ? '<div class="go-dead">eliminated</div>' : ''}
@@ -662,7 +666,7 @@ class MafiaGameClient {
             case 'NIGHT_MAFIA': {
                 const nightElapsed = this.nightTimerStart ? (Date.now() - this.nightTimerStart) / 1000 : 0;
                 const nightRemaining = Math.max(0, this.nightTimerDuration - nightElapsed);
-                if (nightRemaining <= 0 && this.isHost) { this.skipNightPhase(); break; }
+                if (nightRemaining <= 0 && this.isHost) { this.skipNightPhase(); }
                 const nightTimerClass = nightRemaining <= 5 ? 'day-timer urgent' : 'day-timer';
                 const nightTimerHtml = `<div class="${nightTimerClass}"><span>${Math.ceil(nightRemaining)}s</span> remaining</div>`;
                 const hostSkipBtn = this.isHost ? `<button class="btn btn-warning" style="margin-top:10px" onclick="gameClient.skipNightPhase()">Skip Phase</button>` : '';
@@ -670,11 +674,10 @@ class MafiaGameClient {
                     container.innerHTML = `<div class="action-panel">${nightTimerHtml}<p class="phase-hint">You are eliminated. The mafia is choosing their target...</p>${hostSkipBtn}</div>`;
                 } else if (this.myRole === 'MAFIA') {
                     const mafiaTargets = room.players.filter(p => p.alive && p.id !== this.currentPlayerId);
-                    const aliveMafiaCount = room.players.filter(p => p.role === 'MAFIA' && p.alive).length;
+                    const aliveMafiaCount = room.aliveMafiaCount || 0;
                     const mafiaVoteCount = room.mafiaVoteCount || 0;
-                    const mafiaAllies = room.players.filter(p => p.role === 'MAFIA' && p.alive && p.id !== this.currentPlayerId);
-                    const alliesHtml = mafiaAllies.length > 0
-                        ? `<p class="phase-hint mafia-allies">Your allies: ${mafiaAllies.map(p => `<strong>${p.name}</strong>`).join(', ')}</p>`
+                    const alliesHtml = aliveMafiaCount > 1
+                        ? `<p class="phase-hint mafia-allies">You have <strong>${aliveMafiaCount - 1}</strong> mafia ally alive.</p>`
                         : `<p class="phase-hint mafia-allies">You are the only mafia member alive.</p>`;
                     const voteStatus = this.nightActionSubmitted
                         ? `<p class="phase-hint vote-progress">Your vote is in. <strong>${mafiaVoteCount}/${aliveMafiaCount}</strong> mafia acted.</p>`
@@ -708,7 +711,7 @@ class MafiaGameClient {
             case 'NIGHT_DOCTOR': {
                 const ndElapsed = this.nightTimerStart ? (Date.now() - this.nightTimerStart) / 1000 : 0;
                 const ndRemaining = Math.max(0, this.nightTimerDuration - ndElapsed);
-                if (ndRemaining <= 0 && this.isHost) { this.skipNightPhase(); break; }
+                if (ndRemaining <= 0 && this.isHost) { this.skipNightPhase(); }
                 const ndTimerClass = ndRemaining <= 5 ? 'day-timer urgent' : 'day-timer';
                 const ndTimerHtml = `<div class="${ndTimerClass}"><span>${Math.ceil(ndRemaining)}s</span> remaining</div>`;
                 const ndHostSkip = this.isHost ? `<button class="btn btn-warning" style="margin-top:10px" onclick="gameClient.skipNightPhase()">Skip Phase</button>` : '';
@@ -746,7 +749,7 @@ class MafiaGameClient {
             case 'NIGHT_DETECTIVE': {
                 const niElapsed = this.nightTimerStart ? (Date.now() - this.nightTimerStart) / 1000 : 0;
                 const niRemaining = Math.max(0, this.nightTimerDuration - niElapsed);
-                if (niRemaining <= 0 && this.isHost) { this.skipNightPhase(); break; }
+                if (niRemaining <= 0 && this.isHost) { this.skipNightPhase(); }
                 const niTimerClass = niRemaining <= 5 ? 'day-timer urgent' : 'day-timer';
                 const niTimerHtml = `<div class="${niTimerClass}"><span>${Math.ceil(niRemaining)}s</span> remaining</div>`;
                 const niHostSkip = this.isHost ? `<button class="btn btn-warning" style="margin-top:10px" onclick="gameClient.skipNightPhase()">Skip Phase</button>` : '';
@@ -785,7 +788,6 @@ class MafiaGameClient {
                 // Host's timer expired — trigger voting
                 if (remaining <= 0 && this.isHost) {
                     this.endDay();
-                    break;
                 }
 
                 const timerClass = remaining <= 10 ? 'day-timer urgent' : 'day-timer';
@@ -803,7 +805,7 @@ class MafiaGameClient {
             case 'VOTING': {
                 const vtElapsed = this.votingTimerStart ? (Date.now() - this.votingTimerStart) / 1000 : 0;
                 const vtRemaining = Math.max(0, 30 - vtElapsed);
-                if (vtRemaining <= 0 && this.isHost) { this.forceResolveVotes(); break; }
+                if (vtRemaining <= 0 && this.isHost) { this.forceResolveVotes(); }
                 const vtTimerClass = vtRemaining <= 10 ? 'day-timer urgent' : 'day-timer';
                 const vtTimerHtml = `<div class="${vtTimerClass}"><span>${Math.ceil(vtRemaining)}s</span> until auto-resolve</div>`;
 
@@ -1154,9 +1156,20 @@ class MafiaGameClient {
     startRoomPolling() {
         this.stopRoomPolling();
         this._connectRoomWs();
+        // Tick every second so night/day timers count down visually without waiting for WebSocket events
+        this._timerTick = setInterval(() => {
+            const phase = this._lastRoom && this._lastRoom.phase;
+            if (phase && (phase.startsWith('NIGHT') || phase === 'DAY' || phase === 'VOTING')) {
+                this.renderPhaseUI(this._lastRoom);
+            }
+        }, 1000);
     }
 
     stopRoomPolling() {
+        if (this._timerTick) {
+            clearInterval(this._timerTick);
+            this._timerTick = null;
+        }
         if (this._wsReconnectTimer) {
             clearTimeout(this._wsReconnectTimer);
             this._wsReconnectTimer = null;
@@ -1170,7 +1183,8 @@ class MafiaGameClient {
 
     _connectRoomWs() {
         if (!this.currentRoomId) return;
-        const url = `ws://localhost:8080/ws/room/${this.currentRoomId}`;
+        const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const url = `${wsProto}//${window.location.host}/ws/room/${this.currentRoomId}`;
         const ws = new WebSocket(url);
         this._roomWs = ws;
 
@@ -1253,7 +1267,7 @@ class MafiaGameClient {
                 const isMe = msg.playerName === this.currentPlayerName;
                 const skull = msg.channel === 'DEAD' ? '💀 ' : '';
                 const nameLabel = isMe
-                    ? `${this.escapeHtml(msg.playerName)} <span class="chat-you">(You)</span>`
+                    ? `${this.escapeHtml(msg.playerName)} <span class="chat-you"><strong>(You)</strong></span>`
                     : this.escapeHtml(msg.playerName);
                 li.innerHTML = `<span class="chat-name">${skull}${nameLabel}:</span><span class="chat-text">${this.escapeHtml(msg.message)}</span>`;
                 log.appendChild(li);

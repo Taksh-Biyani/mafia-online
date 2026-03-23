@@ -127,8 +127,29 @@ Spam rules: 1500ms cooldown, 200-char max. Messages capped at 200 per room (olde
 Frontend: slide-out panel (top-right button), auto-opens on room entry, polled every 2s.
 Dead players see GENERAL + DEAD. Alive non-MAFIA during NIGHT have no chat access.
 
+## Known gotchas
+
+- **Player roles are stripped from room state JSON** — `Room.players` has `@JsonIgnoreProperties({"role"})`, so `p.role` is always `undefined` client-side. Never filter by role on the client from room state. Use server-exposed `@JsonProperty` computed values (e.g. `room.aliveMafiaCount`, `room.mafiaVoteCount`) instead.
+- **Timer display only updates on WebSocket events** — there is a 1s `_timerTick` interval in `startRoomPolling()` that calls `renderPhaseUI`. If you add new timed phases, include them in the tick's phase filter.
+- **`break` in switch cases exits before rendering** — in `renderPhaseUI`, auto-skip logic (`skipNightPhase()`) must NOT be followed by `break` or the UI (including host skip button) won't render.
+- **Turnstile uses always-pass test keys for LAN/local dev** — sitekey `1x00000000000000000000AA` in `client/script.js`, secret `1x0000000000000000000000000000000AA` in `server/src/main/resources/application.properties`. Swap back to real keys before deploying publicly (see Deployment section).
+- **WebSocket URL uses `window.location.host`** — LAN-safe. Don't hardcode `localhost`.
+- **Tests need `server/src/test/resources/application.properties`** with `turnstile.secret=test-secret` — without it the Spring context fails to load.
+
+## Deployment (going live on a domain)
+
+When deploying to a real domain, two things need updating:
+
+1. **Cloudflare Turnstile** — create a new site (or update existing) in the [Turnstile dashboard](https://dash.cloudflare.com/) with the real domain, then:
+   - `client/script.js` line with `sitekey:` → replace with your real site key
+   - `server/src/main/resources/application.properties` `turnstile.secret=` → replace with your real secret key
+
+2. **Spring static file path** — `spring.web.resources.static-locations=file:../client/` works when running from `server/`. For a packaged jar deployed elsewhere, set to `classpath:/static/` and copy `client/` into `server/src/main/resources/static/` at build time.
+
+Everything else (URLs, WebSocket) is already dynamic via `window.location` — no code changes needed.
+
 ## Conventions
 
 - Don't add or modify comments/docstrings on code that wasn't changed
 - Don't mock dependencies in tests — use `@SpringBootTest` integration tests as the existing tests do
-- Frontend base URL is hardcoded to `http://localhost:8080` — don't change it without a plan for deployment config
+- Frontend base URL uses `window.location.origin` (dynamic) — WebSocket uses `window.location.host` (dynamic). Both are LAN-safe and domain-safe.
