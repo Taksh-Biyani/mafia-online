@@ -1,8 +1,9 @@
-package com.mafia.game.room;
+package com.mafia.game.service;
 
 import com.mafia.game.model.GamePhase;
 import com.mafia.game.model.Player;
-import com.mafia.game.service.RoomService;
+import com.mafia.game.room.Room;
+import com.mafia.game.room.RoomManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
