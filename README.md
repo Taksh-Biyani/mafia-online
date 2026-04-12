@@ -50,7 +50,7 @@ A web-based Mafia game built with Spring Boot and vanilla JavaScript.
    - View current room status and players
    - Start the game when enough players have joined
    - Leave the room at any time
-
+**Note: LAN is currenntly not functional, this is just testing on localhost**
 ## API Endpoints
 
 The frontend communicates with these REST endpoints:
