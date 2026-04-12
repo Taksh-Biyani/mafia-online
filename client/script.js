@@ -212,7 +212,7 @@ class MafiaGameClient {
             this[widgetProp] = null;
         }
         this[widgetProp] = window.turnstile.render('#' + containerId, {
-            sitekey: '1x00000000000000000000AA',
+            sitekey: '0x4AAAAAAC8i_ZQ6I6OxMOy6',
             callback: (token) => { this[tokenProp] = token; },
             'expired-callback': () => { this[tokenProp] = null; }
         });
