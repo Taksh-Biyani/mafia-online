@@ -1679,6 +1679,10 @@ body.title-mode #title-screen {
     text-align: center;
 }
 .ts-btn:hover { transform: translateY(-1px); }
+.ts-btn:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+}
 
 .ts-btn-create {
     color: var(--red);
@@ -1716,4 +1720,11 @@ body.title-mode #title-screen {
 @media (max-width: 640px) {
     .ts-sign-board { padding: 22px 20px 26px; width: min(320px, 80vw); }
     .ts-btn { padding: 11px 16px; font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ts-flash,
+    .ts-rain span,
+    .ts-sign-swing,
+    .ts-fog { animation: none; }
 }
