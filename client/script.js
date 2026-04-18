@@ -161,6 +161,19 @@ class MafiaGameClient {
             if (this.chatPanelOpen) this.toggleChatPanel();
         }
 
+        if (sectionId === 'main-menu') {
+            document.querySelectorAll('.menu-section').forEach(s => {
+                s.classList.remove('section-exit', 'section-enter');
+                s.classList.add('hidden');
+            });
+            document.body.classList.add('title-mode');
+            if (typeof layoutSign === 'function') layoutSign();
+            this.transitioning = false;
+            if (callback) callback();
+            return;
+        }
+        document.body.classList.remove('title-mode');
+
         const reveal = () => {
             target.classList.remove('hidden');
             void target.offsetWidth;

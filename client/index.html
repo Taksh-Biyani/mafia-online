@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Special+Elite&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="title-mode">
     <!-- SVG filter for torn paper edges (invisible, just defines the filter) -->
     <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
         <defs>
@@ -23,9 +23,46 @@
     <!-- Scene silhouettes (shown one at a time on the right side) -->
     <!-- All SVGs sourced from svgrepo.com — CC0 / Public Domain or MIT licensed -->
 
-    <!-- MENU: Criminal silhouette with knife (svgrepo.com/svg/144638) -->
-    <svg id="scene-menu" class="scene-svg scene-active" viewBox="0 0 111.063 111.063" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M97.6,32.733l-0.021-0.109l-0.727-0.916L82.659,42.972l-0.081-0.1l-2.518,1.999c-0.032,0.112-0.077,0.22-0.12,0.329c-0.165-0.035-0.334-0.059-0.509-0.064L64.74,44.679L56.73,27.99c-0.049-0.102-0.106-0.21-0.164-0.309c-0.518-0.886-1.297-1.521-2.184-1.867l0.012-0.1l-0.463-0.051c-0.431-0.117-0.881-0.167-1.332-0.148l-2.473-0.275l-5.72-0.687l-3.199-0.493l-0.084,0.09c-0.635-0.015-1.281,0.104-1.898,0.383l-12.919,5.843l-0.308,0.139c-0.805,0.367-1.465,1.049-1.78,1.95l-6.721,19.197c-0.481,1.386,0.164,2.947,1.527,3.562c1.444,0.652,3.144,0.011,3.795-1.434l7.641-16.928l2.929-1.028l-3.256,19.614l-0.369,1.53c-0.238,0.593-0.385,1.231-0.408,1.905L28.87,72.982L14.354,97.725c-0.098,0.168-0.171,0.344-0.24,0.521l0.027,0.021c-0.056,0.08-0.121,0.149-0.172,0.236c-1.136,1.893-0.677,4.258,1.026,5.279c1.553,0.934,3.594,0.416,4.806-1.116l0.05,0.039l0.706-0.976l17.425-24.616c0.379-0.54,0.646-1.192,0.73-1.896l0.051-0.422l1.027-8.533L52.5,81.061l-5.153,23.154c-0.173,0.789-0.56,2.277-0.56,2.277s0.021,0.004,0.053,0.012c-0.352,2.111,0.871,4.107,2.801,4.494c1.974,0.396,3.926-1.037,4.362-3.203c0.014-0.068,0.011-0.134,0.021-0.201c0.105-0.265,0.403-1.309,0.458-1.485l7.757-25.119c0.381-1.265,0.194-2.706-0.642-3.854l-0.227-0.31L49.95,61.135l2.833-22.578l6.562,11.258l0.145,0.25c0.604,1.031,1.746,1.698,3.021,1.636l16.974-0.833c1.291-0.067,2.375-0.993,2.655-2.23l2.363-1.875l1.014,1.278l0.322-0.169c0.103-0.055,2.541-1.34,5.211-3.458C94.509,41.669,98.453,37.415,97.6,32.733z M82.15,47.425c-0.167-0.815-0.68-1.508-1.383-1.912l1.658-1.316l1.465,1.846L82.15,47.425z M90.503,43.723c-2.053,1.628-4.008,2.775-4.756,3.193l-0.556-0.701l0.025-0.019l-2.012-2.534l13.506-10.715l0.038,0.051C97.444,37.212,93.744,41.151,90.503,43.723z M86.577,41.637l4.36,0.503l-0.055,0.469l-4.359-0.503L86.577,41.637z M87.798,40.67l4.36,0.502l-0.055,0.469l-4.36-0.503L87.798,40.67z M35.947,11.651C35.947,5.216,41.163,0,47.598,0s11.651,5.216,11.651,11.651s-5.216,11.651-11.651,11.651S35.947,18.086,35.947,11.651z"/>
+    <!-- MENU: Village silhouette (matches title screen) -->
+    <svg id="scene-menu" class="scene-svg scene-active" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <!-- Far village -->
+        <g opacity=".85">
+            <path d="M0,230 Q120,195 240,215 T480,205 T720,220 T960,205 T1200,215 L1200,400 L0,400 Z"/>
+            <path d="M60,215 L60,178 L75,168 L90,178 L90,215 Z"/>
+            <path d="M110,218 L110,195 L122,185 L134,195 L134,218 Z"/>
+            <path d="M170,213 L170,170 L188,158 L206,170 L206,213 Z M182,190 L196,190 L196,213 L182,213 Z"/>
+            <path d="M240,215 L240,150 L252,135 L264,150 L264,215 Z M249,110 L255,110 L255,150 L249,150 Z"/>
+            <path d="M250,110 L252,98 L254,110 Z"/>
+            <path d="M300,220 L300,190 L315,178 L330,190 L330,220 Z"/>
+            <path d="M360,218 L360,185 L378,172 L396,185 L396,218 Z"/>
+            <path d="M440,220 L440,200 L454,190 L468,200 L468,220 Z"/>
+            <path d="M500,218 L500,182 L518,170 L536,182 L536,218 Z"/>
+            <path d="M580,215 L580,178 L600,166 L620,178 L620,215 Z"/>
+            <path d="M660,220 L660,195 L675,185 L690,195 L690,220 Z"/>
+            <path d="M730,218 L730,185 L748,172 L766,185 L766,218 Z"/>
+            <path d="M810,215 L810,148 L830,132 L850,148 L850,215 Z M824,100 L836,100 L836,148 L824,148 Z"/>
+            <path d="M826,100 L830,85 L834,100 Z"/>
+            <path d="M890,220 L890,192 L905,182 L920,192 L920,220 Z"/>
+            <path d="M960,218 L960,180 L978,168 L996,180 L996,218 Z"/>
+            <path d="M1040,220 L1040,195 L1055,185 L1070,195 L1070,220 Z"/>
+            <path d="M1100,218 L1100,185 L1118,172 L1136,185 L1136,218 Z"/>
+        </g>
+        <!-- Near silhouette -->
+        <path d="M0,320 Q150,280 300,300 T600,295 T900,305 T1200,295 L1200,400 L0,400 Z"/>
+        <path d="M100,320 L100,230 M100,230 Q95,215 80,205 M100,260 Q110,248 125,245 M100,280 Q92,270 78,272 M100,245 Q112,230 128,222" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M170,320 L170,255 L210,225 L250,255 L250,320 Z"/>
+        <rect x="228" y="225" width="10" height="26"/>
+        <path d="M280,320 L280,305 L285,305 L285,320 M292,320 L292,302 L297,302 L297,320 M304,320 L304,306 L309,306 L309,320 M316,320 L316,303 L321,303 L321,320"/>
+        <path d="M430,320 L430,265 L470,238 L510,265 L510,320 Z"/>
+        <rect x="484" y="238" width="8" height="22"/>
+        <path d="M700,320 L700,235 L736,210 L772,235 L772,320 Z"/>
+        <rect x="718" y="180" width="20" height="55"/>
+        <path d="M722,180 L728,158 L734,180 Z"/>
+        <path d="M727,148 L729,148 L729,158 L727,158 Z M723,152 L733,152 L733,154 L723,154 Z"/>
+        <path d="M900,320 L900,260 L945,230 L990,260 L990,320 Z"/>
+        <rect x="960" y="230" width="10" height="28"/>
+        <path d="M1060,320 L1060,280 L1080,265 L1100,280 L1100,320 Z"/>
+        <path d="M1140,320 L1140,240 M1140,240 Q1148,228 1165,222 M1140,270 Q1130,258 1115,258 M1140,250 Q1152,238 1170,232 M1140,285 Q1128,275 1115,278" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
     </svg>
 
     <!-- LOBBY: Chalk outline murder scene (svgrepo.com/svg/322004) -->
@@ -68,6 +105,95 @@
         <path d="M344,16H168V168H16V344H168V496H344V344H496V168H344ZM464,200V312H312V464H200V312H48V200H200V48H312V200Z"/>
     </svg>
 
+    <!-- ── Title Screen ─────────────────────────────────── -->
+    <div id="title-screen">
+        <div class="ts-fog"></div>
+
+        <svg class="ts-village" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+            <defs>
+                <linearGradient id="vg-far" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0" stop-color="#0a0504"/>
+                    <stop offset="1" stop-color="#030101"/>
+                </linearGradient>
+                <linearGradient id="vg-near" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0" stop-color="#050302"/>
+                    <stop offset="1" stop-color="#000"/>
+                </linearGradient>
+            </defs>
+            <!-- Far village -->
+            <g fill="url(#vg-far)" opacity=".85">
+                <path d="M0,230 Q120,195 240,215 T480,205 T720,220 T960,205 T1200,215 L1200,400 L0,400 Z"/>
+                <path d="M60,215 L60,178 L75,168 L90,178 L90,215 Z"/>
+                <path d="M110,218 L110,195 L122,185 L134,195 L134,218 Z"/>
+                <path d="M170,213 L170,170 L188,158 L206,170 L206,213 Z M182,190 L196,190 L196,213 L182,213 Z"/>
+                <path d="M240,215 L240,150 L252,135 L264,150 L264,215 Z M249,110 L255,110 L255,150 L249,150 Z"/>
+                <path d="M250,110 L252,98 L254,110 Z"/>
+                <path d="M300,220 L300,190 L315,178 L330,190 L330,220 Z"/>
+                <path d="M360,218 L360,185 L378,172 L396,185 L396,218 Z"/>
+                <path d="M440,220 L440,200 L454,190 L468,200 L468,220 Z"/>
+                <path d="M500,218 L500,182 L518,170 L536,182 L536,218 Z"/>
+                <path d="M580,215 L580,178 L600,166 L620,178 L620,215 Z"/>
+                <path d="M660,220 L660,195 L675,185 L690,195 L690,220 Z"/>
+                <path d="M730,218 L730,185 L748,172 L766,185 L766,218 Z"/>
+                <path d="M810,215 L810,148 L830,132 L850,148 L850,215 Z M824,100 L836,100 L836,148 L824,148 Z"/>
+                <path d="M826,100 L830,85 L834,100 Z"/>
+                <path d="M890,220 L890,192 L905,182 L920,192 L920,220 Z"/>
+                <path d="M960,218 L960,180 L978,168 L996,180 L996,218 Z"/>
+                <path d="M1040,220 L1040,195 L1055,185 L1070,195 L1070,220 Z"/>
+                <path d="M1100,218 L1100,185 L1118,172 L1136,185 L1136,218 Z"/>
+            </g>
+            <!-- Near silhouette -->
+            <g fill="url(#vg-near)">
+                <path d="M0,320 Q150,280 300,300 T600,295 T900,305 T1200,295 L1200,400 L0,400 Z"/>
+                <path d="M100,320 L100,230 M100,230 Q95,215 80,205 M100,260 Q110,248 125,245 M100,280 Q92,270 78,272 M100,245 Q112,230 128,222 M100,275 L100,275" stroke="#000" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <path d="M170,320 L170,255 L210,225 L250,255 L250,320 Z"/>
+                <rect x="228" y="225" width="10" height="26" fill="#000"/>
+                <path d="M280,320 L280,305 L285,305 L285,320 M292,320 L292,302 L297,302 L297,320 M304,320 L304,306 L309,306 L309,320 M316,320 L316,303 L321,303 L321,320" fill="#000"/>
+                <path d="M430,320 L430,265 L470,238 L510,265 L510,320 Z"/>
+                <rect x="484" y="238" width="8" height="22" fill="#000"/>
+                <path d="M700,320 L700,235 L736,210 L772,235 L772,320 Z"/>
+                <rect x="718" y="180" width="20" height="55" fill="#000"/>
+                <path d="M722,180 L728,158 L734,180 Z" fill="#000"/>
+                <path d="M727,148 L729,148 L729,158 L727,158 Z M723,152 L733,152 L733,154 L723,154 Z" fill="#000"/>
+                <path d="M900,320 L900,260 L945,230 L990,260 L990,320 Z"/>
+                <rect x="960" y="230" width="10" height="28" fill="#000"/>
+                <path d="M1060,320 L1060,280 L1080,265 L1100,280 L1100,320 Z"/>
+                <path d="M1140,320 L1140,240 M1140,240 Q1148,228 1165,222 M1140,270 Q1130,258 1115,258 M1140,250 Q1152,238 1170,232 M1140,285 Q1128,275 1115,278" stroke="#000" stroke-width="3" fill="none" stroke-linecap="round"/>
+            </g>
+            <!-- Flickering windows -->
+            <rect x="722" y="250" width="4" height="6" fill="#3a2008" opacity=".7">
+                <animate attributeName="opacity" values=".7;.3;.7;.6;.7" dur="3s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="212" y="272" width="4" height="5" fill="#3a2008" opacity=".6">
+                <animate attributeName="opacity" values=".6;.2;.6;.5;.6" dur="4.5s" repeatCount="indefinite"/>
+            </rect>
+        </svg>
+
+        <div class="ts-flash"></div>
+        <div class="ts-rain" id="ts-rain"></div>
+
+        <div class="ts-title-area">
+            <h1>Mafia Online</h1>
+            <div class="ts-sub">A town keeps its secrets in the dark</div>
+        </div>
+
+        <div class="ts-sign-rig">
+            <div class="ts-crossbar"></div>
+            <div class="ts-sign-swing">
+                <div class="ts-chain ts-chain-l"></div>
+                <div class="ts-chain ts-chain-r"></div>
+                <div class="ts-sign-board">
+                    <div class="ts-sign-label">Choose Your Fate</div>
+                    <div class="ts-btn-stack">
+                        <button class="ts-btn ts-btn-create" onclick="gameClient.showCreateRoom()">Create Room</button>
+                        <button class="ts-btn ts-btn-join" onclick="gameClient.showJoinRoom()">Join Room</button>
+                        <button class="ts-btn ts-btn-browse" onclick="gameClient.showRoomList()">Browse Rooms</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
 
         <!-- Title with flanking weapon silhouettes -->
@@ -102,7 +228,7 @@
         </div>
 
         <!-- ── Main Menu ──────────────────────────────────── -->
-        <div id="main-menu" class="menu-section">
+        <div id="main-menu" class="menu-section hidden">
             <h2>Choose Your Fate</h2>
             <button id="create-room-btn" class="btn btn-danger">Create New Room</button>
             <button id="join-room-btn" class="btn btn-secondary">Join Room</button>
@@ -319,6 +445,32 @@
         </div>
     </div>
 
+<script>
+(function(){
+    var rain = document.getElementById('ts-rain');
+    for(var i=0;i<140;i++){
+        var s=document.createElement('span');
+        var h=12+Math.random()*22;
+        s.style.left=Math.random()*100+'%';
+        s.style.height=h+'px';
+        s.style.opacity=.25+Math.random()*.5;
+        s.style.animationDuration=(0.45+Math.random()*0.6)+'s';
+        s.style.animationDelay=(-Math.random()*1.2)+'s';
+        rain.appendChild(s);
+    }
+    window.layoutSign=function(){
+        var h1=document.querySelector('#title-screen .ts-title-area h1');
+        var sub=document.querySelector('#title-screen .ts-sub');
+        if(!h1||!sub) return;
+        var titleTop=h1.getBoundingClientRect().top;
+        var subBottom=sub.getBoundingClientRect().bottom;
+        document.getElementById('title-screen').style.setProperty('--bar-top',(subBottom+titleTop)+'px');
+    };
+    window.layoutSign();
+    window.addEventListener('resize',window.layoutSign);
+    if(document.fonts&&document.fonts.ready) document.fonts.ready.then(layoutSign);
+})();
+</script>
 <script src="script.js"></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </body>
