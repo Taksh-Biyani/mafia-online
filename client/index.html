@@ -7,9 +7,41 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Special+Elite&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body class="title-mode">
+    <!-- Permanent hilly village background -->
+    <div class="hills-bg" aria-hidden="true">
+      <svg viewBox="0 0 1920 760" preserveAspectRatio="xMidYMax slice">
+        <!-- Far hills -->
+        <g fill="#0a0303">
+          <path d="M0 380 C 200 340, 360 360, 540 320 S 920 280, 1120 320 S 1520 350, 1740 310 L 1920 320 L 1920 760 L 0 760 Z"/>
+          <rect x="290" y="333" width="14" height="14"/><polygon points="287,333 297,323 307,333"/>
+          <rect x="710" y="298" width="12" height="12"/><polygon points="707,298 716,289 725,298"/>
+          <rect x="730" y="300" width="10" height="10"/><polygon points="728,300 735,293 742,300"/>
+          <rect x="1060" y="312" width="14" height="14"/><polygon points="1057,312 1067,302 1077,312"/>
+          <rect x="1410" y="332" width="13" height="13"/><polygon points="1407,332 1416,322 1426,332"/>
+        </g>
+        <!-- Mid hills -->
+        <g fill="#100404">
+          <path d="M0 510 C 160 470, 320 490, 500 460 S 880 430, 1080 460 S 1500 500, 1740 470 L 1920 480 L 1920 760 L 0 760 Z"/>
+          <rect x="240" y="473" width="22" height="22"/><polygon points="236,473 251,460 266,473"/>
+          <rect x="640" y="442" width="24" height="24"/><polygon points="636,442 652,428 668,442"/>
+          <rect x="990" y="448" width="26" height="22"/><polygon points="985,448 1003,432 1021,448"/>
+          <rect x="855" y="430" width="18" height="32"/><polygon points="850,430 864,410 878,430"/><polygon points="861,394 866,410 856,410"/>
+        </g>
+        <!-- Foreground hills -->
+        <g fill="#180707">
+          <path d="M0 660 C 140 600, 320 630, 540 590 S 940 560, 1180 600 S 1560 660, 1760 620 L 1920 640 L 1920 760 L 0 760 Z"/>
+          <rect x="80" y="600" width="40" height="36"/><polygon points="74,600 100,580 126,600"/>
+          <rect x="380" y="582" width="46" height="42"/><polygon points="373,582 403,558 433,582"/>
+          <rect x="780" y="556" width="24" height="46"/><polygon points="773,556 792,536 811,556"/><polygon points="788,510 794,536 782,536"/>
+          <rect x="1070" y="586" width="44" height="38"/><polygon points="1063,586 1092,564 1121,586"/>
+          <rect x="1450" y="614" width="38" height="34"/><polygon points="1444,614 1469,594 1494,614"/>
+        </g>
+      </svg>
+    </div>
+
     <!-- SVG filter for torn paper edges (invisible, just defines the filter) -->
     <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
         <defs>
@@ -194,6 +226,13 @@
         </div>
     </div>
 
+    <div class="board-fly" id="board-fly">
+    <!-- Game mode crossbar + chains (hidden in title-mode via CSS) -->
+    <div class="game-sign-rig" id="game-sign-rig" aria-hidden="true">
+      <div class="game-crossbar"></div>
+      <div class="game-chain game-chain-l"></div>
+      <div class="game-chain game-chain-r"></div>
+    </div>
     <div class="container">
 
         <!-- Title with flanking weapon silhouettes -->
@@ -358,6 +397,7 @@
         <div id="messages" class="messages"></div>
 
     </div>
+    </div><!-- end .board-fly -->
 
     <!-- ── Help / Tutorial (fixed, top-right) ───────────── -->
     <button id="help-toggle-btn" aria-label="How to play">?</button>
@@ -471,7 +511,7 @@
     if(document.fonts&&document.fonts.ready) document.fonts.ready.then(layoutSign);
 })();
 </script>
-<script src="script.js"></script>
+<script src="script.js?v=3"></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </body>
 </html>

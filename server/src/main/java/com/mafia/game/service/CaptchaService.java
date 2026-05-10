@@ -33,6 +33,8 @@ public class CaptchaService {
      */
     public boolean verify(String token, String remoteIp) {
         if (token == null || token.isBlank()) return false;
+        // Cloudflare's always-pass test secret — skip network call
+        if (secret.startsWith("1x0000000000000000000000000000000")) return true;
         try {
             String body = "secret=" + URLEncoder.encode(secret, StandardCharsets.UTF_8)
                         + "&response=" + URLEncoder.encode(token, StandardCharsets.UTF_8);

@@ -147,7 +147,10 @@ class MafiaGameClient {
     // --- Animated Navigation ---
 
     navigateTo(sectionId, callback) {
-        if (this.transitioning) return;
+        // Cancel any in-flight animation immediately so rapid calls never get stuck
+        const boardFly = document.getElementById('board-fly');
+        if (boardFly) boardFly.classList.remove('slide-exit', 'slide-enter');
+        this.transitioning = false;
 
         const target = document.getElementById(sectionId);
         if (!target) return;
@@ -168,33 +171,48 @@ class MafiaGameClient {
             });
             document.body.classList.add('title-mode');
             if (typeof layoutSign === 'function') layoutSign();
-            this.transitioning = false;
             if (callback) callback();
             return;
         }
+
+        const wasInTitleMode = document.body.classList.contains('title-mode');
         document.body.classList.remove('title-mode');
 
-        const reveal = () => {
+        const revealContent = () => {
+            if (current && current !== target) {
+                current.classList.add('hidden');
+                current.classList.remove('section-exit', 'section-enter');
+            }
             target.classList.remove('hidden');
-            void target.offsetWidth;
-            target.classList.add('section-enter');
-            target.addEventListener('animationend', () => {
-                target.classList.remove('section-enter');
-                this.transitioning = false;
-            }, { once: true });
             if (callback) callback();
         };
 
-        if (current && current !== target && !current.classList.contains('hidden')) {
-            this.transitioning = true;
-            current.classList.add('section-exit');
-            current.addEventListener('animationend', () => {
-                current.classList.add('hidden');
-                current.classList.remove('section-exit');
-                reveal();
-            }, { once: true });
+        const slideIn = () => {
+            if (!boardFly) return;
+            void boardFly.offsetWidth;
+            boardFly.classList.add('slide-enter');
+            setTimeout(() => boardFly.classList.remove('slide-enter'), 400);
+        };
+
+        if (wasInTitleMode || !current || current === target || current.classList.contains('hidden')) {
+            // No exit animation needed — just reveal and fly in from right
+            revealContent();
+            slideIn();
         } else {
-            reveal();
+            // Between game screens: slide board out left, swap content, fly back in from right
+            this.transitioning = true;
+            if (boardFly) {
+                boardFly.classList.add('slide-exit');
+                setTimeout(() => {
+                    boardFly.classList.remove('slide-exit');
+                    revealContent();
+                    this.transitioning = false;
+                    slideIn();
+                }, 330);
+            } else {
+                revealContent();
+                this.transitioning = false;
+            }
         }
     }
 

@@ -1,5 +1,13 @@
 /* Mafia Online Game Styles — Noir Red/Black Theme */
 
+@font-face {
+    font-family: 'HelpMe';
+    src: url('fonts/HelpMe.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Special+Elite&display=swap');
 
 .sr-only {
@@ -50,9 +58,10 @@ body {
     background-attachment: fixed;
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     justify-content: flex-start;
-    align-items: flex-start;
-    padding: 30px 30px 30px 4vw;
+    align-items: center;
+    padding: 0;
     color: var(--text);
     position: relative;
     overflow-x: hidden;
@@ -176,16 +185,13 @@ body::after {
 }
 
 h1 {
-    font-family: 'Cinzel', 'Times New Roman', serif;
+    font-family: 'HelpMe', 'Times New Roman', serif;
     font-weight: 900;
     text-align: center;
     color: var(--red);
     font-size: 2.4em;
     letter-spacing: 0.12em;
-    text-shadow:
-        0 0 20px rgba(192,57,43,0.6),
-        0 0 40px rgba(139,0,0,0.3),
-        2px 2px 0 #1a0000;
+    text-shadow: 2px 2px 0 #1a0000;
     line-height: 1;
 }
 
@@ -217,7 +223,7 @@ h1 {
 }
 
 h2 {
-    font-family: 'Cinzel', 'Times New Roman', serif;
+    font-family: 'HelpMe', 'Times New Roman', serif;
     font-weight: 700;
     color: var(--text);
     margin-bottom: 22px;
@@ -229,39 +235,9 @@ h2 {
 
 /* ── Section Transitions ────────────────────────────── */
 
-@keyframes section-zoom-in {
-    from {
-        opacity: 0;
-        transform: scale(0.82) translateY(18px);
-        filter: blur(4px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-        filter: blur(0);
-    }
-}
-
-@keyframes section-zoom-out {
-    from {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-        filter: blur(0);
-    }
-    to {
-        opacity: 0;
-        transform: scale(1.1) translateY(-14px);
-        filter: blur(4px);
-    }
-}
-
-.section-enter {
-    animation: section-zoom-in 0.4s ease-out both;
-}
-
-.section-exit {
-    animation: section-zoom-out 0.28s ease-in both;
-}
+/* Section-level transitions removed — board-level slide handles animation */
+.section-enter { /* instant; board-level slide handles the animation */ }
+.section-exit  { /* instant */ }
 
 /* ── Layout ─────────────────────────────────────────── */
 
@@ -439,7 +415,7 @@ select option {
     border-radius: 3px;
     cursor: pointer;
     font-size: 13px;
-    font-family: 'Cinzel', 'Times New Roman', serif;
+    font-family: 'HelpMe', 'Times New Roman', serif;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -516,13 +492,13 @@ select option {
 
 .btn-info {
     background: transparent;
-    color: #8a8070;
-    border-color: #3a3028;
+    color: var(--text);
+    border-color: #5a3028;
 }
 .btn-info:hover {
-    background: #141210;
-    border-color: #8a8070;
-    color: var(--text);
+    background: #140a08;
+    border-color: #8a5040;
+    color: #fff1dd;
 }
 
 /* ── Panels ─────────────────────────────────────────── */
@@ -686,7 +662,7 @@ select option {
     font-size: 0.82em;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     font-weight: 700;
 }
 
@@ -757,7 +733,7 @@ select option {
 .day-timer {
     font-size: 1.15em;
     font-weight: bold;
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     color: var(--text-muted);
     margin: 10px 0;
     padding: 8px 14px;
@@ -821,17 +797,17 @@ select option {
 }
 
 .game-over-banner h2 {
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     font-size: 2em;
     color: var(--red);
-    text-shadow: 0 0 20px rgba(192,57,43,0.7), 2px 2px 0 #1a0000;
+    text-shadow: 2px 2px 0 #1a0000;
     margin-bottom: 16px;
     border-bottom: 1px solid var(--border-red);
     padding-bottom: 12px;
 }
 
 .game-over-banner h4 {
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     font-size: 0.8em;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -874,7 +850,7 @@ select option {
     padding: 0;
     font-size: 1.5vw;
     font-weight: 900;
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     color: var(--red-dark);
     line-height: 1;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -920,7 +896,7 @@ select option {
     letter-spacing: 0.1em;
     color: var(--text-muted);
     border-bottom: 1.5px solid var(--border-red);
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     font-weight: 700;
     background: #0f0808;
 }
@@ -936,7 +912,7 @@ select option {
 }
 
 #help-content h3 {
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     font-size: 0.9em;
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -973,7 +949,7 @@ select option {
 }
 
 .help-role-name {
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     font-weight: 700;
     font-size: 0.95em;
     margin-bottom: 0.3em;
@@ -1077,7 +1053,7 @@ select option {
     letter-spacing: 0.1em;
     color: var(--text-muted);
     border-bottom: 1.5px solid var(--border-red);
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     font-weight: 700;
     background: #0f0808;
     text-align: left;
@@ -1177,6 +1153,8 @@ select option {
     .scene-svg {
         display: none;
     }
+
+    .game-sign-rig { display: none !important; }
 }
 
 @media (max-width: 600px) {
@@ -1249,7 +1227,7 @@ select option {
 }
 
 .game-over-verdict {
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     font-weight: 900;
     font-size: 5.5rem;
     letter-spacing: 0.12em;
@@ -1288,7 +1266,7 @@ select option {
 }
 
 .game-over-subtitle {
-    font-family: 'Cinzel', serif;
+    font-family: 'HelpMe', serif;
     font-size: 0.85rem;
     letter-spacing: 0.25em;
     text-transform: uppercase;
@@ -1404,6 +1382,102 @@ select option {
     }
 }
 
+/* ── Permanent Hilly Village Background ──────────────── */
+
+.hills-bg {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 78vh;
+    pointer-events: none;
+    z-index: 0;
+}
+.hills-bg svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* ── Game-Mode Crossbar + Chains ─────────────────────── */
+
+.game-sign-rig {
+    display: none;
+    position: relative;
+    width: 100%;
+    height: calc(10vh + 138px);
+    pointer-events: none;
+    flex-shrink: 0;
+}
+body:not(.title-mode) .game-sign-rig {
+    display: block;
+}
+.game-crossbar {
+    position: absolute;
+    top: 10vh;
+    left: -15vw;
+    right: -15vw;
+    height: 18px;
+    background: linear-gradient(to bottom, #1a0a08 0%, #2a1410 35%, #1a0a08 65%, #080302 100%);
+    border-top: 2px solid rgba(120,60,40,.35);
+    box-shadow: 0 4px 0 rgba(0,0,0,.6);
+}
+.game-crossbar::before,
+.game-crossbar::after {
+    content: '';
+    position: absolute;
+    top: -6px;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #1a0a08, #0a0302);
+    border-radius: 3px;
+    border: 2px solid rgba(60,30,20,.6);
+}
+.game-crossbar::before { left: calc(50% - 200px); }
+.game-crossbar::after  { left: calc(50% + 176px); }
+
+.game-chain {
+    position: absolute;
+    top: calc(10vh + 18px);
+    width: 10px;
+    height: 120px;
+    background: repeating-linear-gradient(180deg, #2a1410 0, #2a1410 12px, #0a0302 12px, #0a0302 22px);
+    box-shadow: 2px 0 0 rgba(0,0,0,.4);
+}
+.game-chain-l { left: calc(50% - 195px); }
+.game-chain-r { left: calc(50% + 185px); }
+
+/* ── Board Slide Wrapper ──────────────────────────────── */
+
+.board-fly {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 40px;
+    width: 100%;
+    will-change: transform;
+}
+
+body.title-mode .board-fly {
+    display: none;
+}
+
+@keyframes board-slide-exit {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-120vw); }
+}
+@keyframes board-slide-enter {
+    from { transform: translateX(120vw); }
+    to   { transform: translateX(0); }
+}
+.board-fly.slide-exit {
+    animation: board-slide-exit 320ms ease-in both;
+}
+.board-fly.slide-enter {
+    animation: board-slide-enter 380ms ease-out both;
+}
+
 /* ── Title Screen ─────────────────────────────────────── */
 
 body.title-mode {
@@ -1515,7 +1589,7 @@ body.title-mode #title-screen {
     white-space: nowrap;
 }
 #title-screen .ts-title-area h1 {
-    font-family: 'Cinzel', 'Times New Roman', serif;
+    font-family: 'HelpMe', 'Times New Roman', serif;
     font-weight: 900;
     color: var(--red);
     font-size: clamp(34px, 6.2vw, 82px);
@@ -1610,7 +1684,7 @@ body.title-mode #title-screen {
 
 .ts-sign-label {
     text-align: center;
-    font-family: 'Cinzel', 'Times New Roman', serif;
+    font-family: 'HelpMe', 'Times New Roman', serif;
     font-weight: 900;
     color: var(--gold);
     font-size: 14px;
@@ -1643,7 +1717,7 @@ body.title-mode #title-screen {
     padding: 13px 20px;
     background: transparent;
     border-radius: 3px;
-    font-family: 'Cinzel', 'Times New Roman', serif;
+    font-family: 'HelpMe', 'Times New Roman', serif;
     font-weight: 700;
     font-size: 13px;
     letter-spacing: .12em;
