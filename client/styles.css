@@ -1493,6 +1493,7 @@ body.title-mode #title-screen {
     z-index: 4;
     pointer-events: none;
     overflow: hidden;
+    contain: layout paint style;
 }
 .ts-rain span {
     position: absolute;
@@ -1500,6 +1501,7 @@ body.title-mode #title-screen {
     width: 1px;
     background: linear-gradient(to bottom, transparent, rgba(180,190,210,.45));
     animation: ts-fall linear infinite;
+    will-change: transform;
 }
 @keyframes ts-fall {
     to { transform: translateY(120vh); }
